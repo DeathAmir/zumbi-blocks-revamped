@@ -1,0 +1,50 @@
+name: Windows Native Engine Build
+on:
+  push:
+    branches: [custom-engine-migration]
+  pull_request:
+    branches: [custom-engine-migration]
+  workflow_dispatch:
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgJsonGlob: '**/vcpkg.json'
+      - name: Install OpenSSL
+        shell: pwsh
+        run: vcpkg install openssl:x64-windows
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake -S NativeEngine -B build
+          -A x64
+          -DCMAKE_TOOLCHAIN_FILE="$env:RUNNER_TEMP/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+          -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test encrypted archive
+        shell: pwsh
+        run: |
+          Set-Content -NoNewline -Encoding ascii input.bin "zumbi native archive smoke test"
+          $key = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+          .\build\Release\zumbi_native.exe pack input.bin test.zpak $key
+          if ($LASTEXITCODE -ne 0) { throw "Pack failed" }
+          .\build\Release\zumbi_native.exe unpack test.zpak output.bin $key
+          if ($LASTEXITCODE -ne 0) { throw "Unpack failed" }
+          if ((Get-FileHash input.bin).Hash -ne (Get-FileHash output.bin).Hash) { throw "Round-trip mismatch" }
+          $wrongKey = "10112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+          .\build\Release\zumbi_native.exe unpack test.zpak rejected.bin $wrongKey
+          if ($LASTEXITCODE -eq 0) { throw "Wrong key was accepted" }
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: zumbi-native-windows-x64
+          path: build/Release/zumbi_native.exe
+          if-no-files-found: error
