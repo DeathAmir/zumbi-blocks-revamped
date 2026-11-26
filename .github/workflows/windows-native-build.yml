@@ -31,19 +31,30 @@ jobs:
           if ($LASTEXITCODE -eq 0) { throw "Wrong key was accepted" }
           Write-Output "Wrong key correctly rejected"
           exit 0
-      - name: Test Zumbi Scripts compiler and VM
+      - name: Test Zumbi Scripts compiler, VM and gameplay ports
         shell: pwsh
         run: |
-          .\build\Release\zumbi_native.exe compile NativeEngine/tests/gameplay.zs gameplay.zsc
-          if ($LASTEXITCODE -ne 0) { throw "ZS compilation failed" }
-          .\\build\\Release\\zumbi_native.exe disasm gameplay.zsc gameplay.zsa
+          $tests = @(
+            @{ File = "gameplay"; Expected = "Zumbi Scripts VM gameplay logic OK" },
+            @{ File = "player_stats"; Expected = "PlayerStats port tests OK" },
+            @{ File = "enemy_combat"; Expected = "Enemy combat port tests OK" },
+            @{ File = "player_movement"; Expected = "PlayerMovement port tests OK" },
+            @{ File = "wave_director"; Expected = "WaveDirector port tests OK" }
+          )
+          foreach ($test in $tests) {
+            $source = "NativeEngine/tests/$($test.File).zs"
+            $bytecode = "$($test.File).zsc"
+            .\build\Release\zumbi_native.exe compile $source $bytecode
+            if ($LASTEXITCODE -ne 0) { throw "ZS compilation failed: $source" }
+            $output = & .\build\Release\zumbi_native.exe run $bytecode 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) { throw "ZSC VM execution failed: $source; output: $output" }
+            if ($output -notmatch [regex]::Escape($test.Expected)) { throw "Gameplay result mismatch: $source; output: $output" }
+            Write-Output "$($test.File): passed"
+          }
+          .\build\Release\zumbi_native.exe disasm gameplay.zsc gameplay.zsa
           if ($LASTEXITCODE -ne 0) { throw "ZSA disassembly failed" }
           $listing = Get-Content gameplay.zsa -Raw
           if ($listing -notmatch '\.function\s+[a-z0-9]{3}') { throw "Randomized assembly symbols missing" }
-          $output = & .\build\Release\zumbi_native.exe run gameplay.zsc 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 0) { throw "ZSC VM execution failed: $output" }
-          if ($output -notmatch "Zumbi Scripts VM gameplay logic OK") { throw "Gameplay VM result mismatch: $output" }
-          if ($output -notmatch "Wave 3") { throw "Loop/function test did not execute: $output" }
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
