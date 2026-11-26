@@ -166,4 +166,44 @@ bool ZsCompiler::compile(const std::filesystem::path& input,
     if (!outputFile) { error = "Failed while writing ZSA output."; return false; }
     return true;
 }
-}
+}bool loadModule(const std::filesystem::path& path,Module& m,std::string& error) {
+    std::ifstream in(path,std::ios::binary); if(!in){error="Cannot open ZSC module.";return false;}
+    std::array<char,8> magic{};
+    std::uint64_t rawSize=0,packedSize=0;
+    if(!in.read(magic.data(),magic.size())||magic!=std::array<char,8>{'Z','S','C','V','M','0','0','2'}||
+       !readRaw(in,rawSize)||!readRaw(in,packedSize)||rawSize>256ull*1024*1024||packedSize>256ull*1024*1024) {
+        error="Invalid ZSC signature, version, or size.";return false;
+    }
+    std::vector<unsigned char> packed(static_cast<std::size_t>(packedSize));
+    if(packedSize && !in.read(reinterpret_cast<char*>(packed.data()),static_cast<std::streamsize>(packedSize))) {
+        error="Truncated ZSC payload.";return false;
+    }
+    std::string raw;
+    if(!rleDecompress(packed,static_cast<std::size_t>(rawSize),raw)) {error="Invalid compressed ZSC payload.";return false;}
+    std::istringstream data(raw,std::ios::binary);
+    std::uint32_t ns=0,nn=0,nf=0;
+    if(!readRaw(data,ns)||!readRaw(data,nn)||!readRaw(data,nf)||ns>1000000||nn>1000000||nf>100000) {error="Invalid ZSC tables.";return false;}
+    for(std::uint32_t i=0;i<ns;++i){std::string v;if(!readString(data,v)){error="Truncated ZSC string table.";return false;}m.strings.push_back(std::move(v));}
+    for(std::uint32_t i=0;i<nn;++i){double n;if(!readRaw(data,n)){error="Truncated ZSC constants.";return false;}m.numbers.push_back(n);}
+    for(std::uint32_t i=0;i<nf;++i){
+        Function f; std::uint32_t params=0,locals=0,count=0;
+        if(!readString(data,f.symbol)||!readRaw(data,params)||!readRaw(data,locals)||!readRaw(data,count)||params>4096||locals>65536||count>10000000){error="Invalid ZSC function.";return false;}
+        f.locals=locals; f.params.resize(params);
+        for(auto& p:f.params) if(!readString(data,p)){error="Truncated ZSC parameter list.";return false;}
+        for(std::uint32_t j=0;j<count;++j){std::uint8_t op;Ins x;if(!readRaw(data,op)||!readRaw(data,x.a)||!readRaw(data,x.b)||op>static_cast<std::uint8_t>(Op::Return)){error="Invalid ZSC instruction.";return false;}x.op=static_cast<Op>(op);f.code.push_back(x);}
+        m.functions.push_back(std::move(f));
+    }
+    return true;
+}    std::ostringstream raw(std::ios::binary);
+    const auto ns=static_cast<std::uint32_t>(strings.size());const auto nn=static_cast<std::uint32_t>(parser.numbers().size());const auto nf=static_cast<std::uint32_t>(functions.size());
+    writeRaw(raw,ns);writeRaw(raw,nn);writeRaw(raw,nf);
+    for(const auto& v:strings)writeString(raw,v);
+    for(const auto n:parser.numbers())writeRaw(raw,n);
+    for(const auto& f:functions){writeString(raw,f.symbol);const auto p=static_cast<std::uint32_t>(f.params.size());writeRaw(raw,p);writeRaw(raw,f.locals);const auto c=static_cast<std::uint32_t>(f.code.size());writeRaw(raw,c);for(const auto& ins:f.code){const auto op=static_cast<std::uint8_t>(ins.op);writeRaw(raw,op);writeRaw(raw,ins.a);writeRaw(raw,ins.b);}}
+    const auto rawBytes=raw.str();
+    const auto packed=rleCompress(rawBytes);
+    std::ofstream out(output,std::ios::binary);if(!out){error="Cannot create ZSC output.";return false;}
+    const std::array<char,8> magic{'Z','S','C','V','M','0','0','2'};out.write(magic.data(),magic.size());
+    const auto rawSize=static_cast<std::uint64_t>(rawBytes.size());const auto packedSize=static_cast<std::uint64_t>(packed.size());
+    writeRaw(out,rawSize);writeRaw(out,packedSize);
+    if(!packed.empty())out.write(reinterpret_cast<const char*>(packed.data()),static_cast<std::streamsize>(packed.size()));
