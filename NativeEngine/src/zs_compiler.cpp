@@ -1,6 +1,7 @@
 #include "zs_compiler.hpp"
 #include <array>
 #include <cctype>
+#include <cstdint>
 #include <fstream>
 #include <functional>
 #include <random>
@@ -146,10 +147,8 @@ bool ZsCompiler::compile(const std::filesystem::path& input,
         static_cast<std::uint64_t>(std::hash<std::string>{}(input.filename().string()));
     std::mt19937_64 random(seed);
     std::unordered_map<std::string, bool> used;
-    std::unordered_map<std::string, std::string> symbols;
     for (auto& function : functions) {
         function.symbol = make_symbol(random, used);
-        symbols.emplace(function.name, function.symbol);
     }
 
     std::ofstream outputFile(output, std::ios::binary);
