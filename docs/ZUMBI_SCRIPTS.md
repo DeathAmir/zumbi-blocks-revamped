@@ -1,50 +1,71 @@
-# Zumbi Scripts (ZS) toolchain
+# Zumbi Scripts
 
-ZS is the high-level, engine-owned scripting language. It is not Lua and does not embed a Lua runtime. The native C++ engine owns rendering, physics, input, audio, navigation, networking, resource lifetime, and the VM. ZS is intended for UI composition, menus, HUD behavior, gameplay rules, events, and mod-facing logic.
+Zumbi Scripts (ZS) is the game-facing high-level language for ZBR Engine. It is a custom language and does not embed or depend on Lua.
 
-## Compilation pipeline
+## Runtime boundary
 
-1. `.zs` — readable high-level source written by developers.
-2. `.zsa` — readable Zumbi Script Assembly emitted by the ZSC compiler. It exposes the lowered UI opcodes and the symbol table for debugging.
-3. `.zsc` — planned compact bytecode module. The assembler/bytecode stage will validate instruction operands, encode opcodes, and apply compression.
-4. `.zbp` — Zumbi Bundle Package. The final `ZBR Engine.zbp` package will contain compiled ZSC modules, asset metadata, and encrypted asset chunks. Development builds may additionally include ZSA debug listings.
+The C++ engine owns rendering, physics, collision, input devices, audio backends, resource streaming, navigation primitives, networking transport, memory management, and low-level platform services.
 
-The current compiler milestone implements the first lowering pass from ZS to readable ZSA. The bytecode VM, compression, bundle directory/index, and package signing are subsequent milestones; the current encrypted single-file archive is only the cryptographic primitive, not yet the final ZBP format.
+Game behavior is authored in ZS: player and enemy state machines, weapons, inventory, waves, missions, interaction rules, menus, HUD, UI behavior, progression, save-game rules, and event responses. ZS reaches engine features through a registered native API; scripts do not receive arbitrary C++ pointers or unrestricted native calls.
 
-## Syntax v0.1
+## Pipeline
 
-A source file contains zero-argument functions. UI calls are deliberately small and declarative:
+- `.zs`: editable high-level source.
+- ZSC compiler: lexer, parser, semantic checks, bytecode generation, and per-build three-character function symbols.
+- `.zsc`: binary VM bytecode module. It contains constants, local slots, function metadata, and VM instructions; source-level function names are not stored in the runtime function table.
+- ZSA: planned readable assembler/debug listing for developer builds only. It is not shipped in release bundles.
+- ZSC VM: bounded stack interpreter with function calls, local variables, arithmetic, comparisons, branches, loops, native API calls, and a per-run instruction budget.
+- `.zbp`: final encrypted bundle format. The target package name is `ZBR Engine.zbp`; it will hold ZSC modules and encrypted game assets.
+
+The current ZSC format is binary, not source text. The current implementation does not claim that bytecode is impossible to reverse engineer. Native code, symbols, and runtime behavior can always be analyzed; encrypted ZBP distribution, randomized symbols, stripped debug metadata, and later opcode obfuscation raise the cost but are not an absolute guarantee.
+
+## Current ZS syntax
 
 ```zs
 fn Main() {
-    ui.panel("hud")
-    ui.text("health", "100")
-    ui.button("inventory", "Inventory")
-    ui.visible("hud", true)
+    let health = 100;
+    let wave = 1;
+    let damage = calculateDamage(45, 12);
+
+    while (wave < 4) {
+        log("Wave", wave);
+        wave = wave + 1;
+    }
+
+    if (health > 0 && damage == 33) {
+        log("Player can continue");
+    } else {
+        log("Player is down");
+    }
+}
+
+fn calculateDamage(base, armor) {
+    let result = base - armor;
+    if (result < 0) {
+        return 0;
+    }
+    return result;
 }
 ```
 
-Supported calls in compiler v0.1:
+Implemented language features:
 
-- `ui.panel(id)`
-- `ui.text(id, value)`
-- `ui.button(id, label)`
-- `ui.visible(id, true|false)`
+- Functions and parameters; functions may call other functions.
+- `let` locals and reassignment.
+- `return`.
+- `if / else` and `while`.
+- Number, string, boolean, and null literals.
+- `+`, `-`, `*`, `/`, `%`, unary `-` and `!`.
+- Comparisons and short-circuit `&&` / `||`.
+- Native engine function calls such as `physics.setVelocity(...)`, `player.setHealth(...)`, `zombie.spawn(...)`, and `ui.text(...)` once those APIs are registered by the engine runtime.
 
-Strings use double quotes. A function is declared with `fn Name() {` and closed with `}`. The parser reports source line numbers for invalid declarations or calls.
+The engine API names above describe the intended binding style; only the CLI `log` and `print` functions are registered in the standalone compiler/VM smoke-test host at this milestone.
 
-## Symbol scrambling
-
-Each function receives a unique three-character lowercase-alphanumeric symbol during compilation. The generated symbol table maps readable source names to short assembly names. The random mapping is for compactness/obfuscation only; it is not encryption or a security boundary. Runtime API names and engine ABI symbols remain stable and are not randomized.
-
-## Native/script boundary
-
-The C++ runtime owns authoritative state and performance-critical systems. ZS accesses them through a versioned, capability-checked native API. A script cannot directly call arbitrary C++ functions. UI rendering is submitted through the native UI API; physics and simulation remain native.
-
-## Current compiler command
+## Build and execute
 
 ```sh
-zumbi_native compile samples/ui/main.zs main.zsa
+zumbi_native compile gameplay.zs gameplay.zsc
+zumbi_native run gameplay.zsc
 ```
 
-The current command writes human-readable ZSA. It does not yet execute scripts or emit ZSC bytecode.
+The VM starts the first function in the module; place `fn Main()` first. The VM enforces call-depth, stack, and instruction-count limits. The compiler and VM are an initial general-purpose foundation, not yet the complete language/runtime needed to port every original Unity gameplay system. Arrays/objects, modules/imports, event declarations, coroutines, debugger/source maps, and production engine bindings remain planned work.
