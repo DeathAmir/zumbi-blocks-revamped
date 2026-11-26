@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ZumbiNativeEngine VERSION 0.1.0 LANGUAGES CXX)
+project(ZumbiNativeEngine VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,8 +11,12 @@ add_executable(zumbi_native
 )
 target_include_directories(zumbi_native PRIVATE include)
 
-find_package(OpenSSL REQUIRED)
-target_link_libraries(zumbi_native PRIVATE OpenSSL::Crypto)
+if(WIN32)
+    target_link_libraries(zumbi_native PRIVATE bcrypt)
+else()
+    find_package(OpenSSL REQUIRED)
+    target_link_libraries(zumbi_native PRIVATE OpenSSL::Crypto)
+endif()
 
 if(MSVC)
     target_compile_options(zumbi_native PRIVATE /W4 /permissive-)
