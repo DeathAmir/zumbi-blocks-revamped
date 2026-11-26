@@ -59,7 +59,13 @@ Implemented language features:
 - Comparisons and short-circuit `&&` / `||`.
 - Native engine function calls such as `physics.setVelocity(...)`, `player.setHealth(...)`, `zombie.spawn(...)`, and `ui.text(...)` once those APIs are registered by the engine runtime.
 
-The engine API names above describe the intended binding style; only the CLI `log` and `print` functions are registered in the standalone compiler/VM smoke-test host at this milestone.
+The engine API names above describe the intended binding style. The standalone CLI host currently registers `log`, `print`, `sqrt`, and these data APIs for deterministic VM tests:
+
+- `array.new()`, `array.push(array, value)`, `array.get(array, index)`, `array.set(array, index, value)`, `array.size(array)`, `array.pop(array)`.
+- `map.new()`, `map.set(map, key, value)`, `map.get(map, key)`, `map.has(map, key)`, `map.erase(map, key)`.
+- `state.set(key, value)`, `state.get(key)`, `state.has(key)`, `state.erase(key)` for module-run state.
+
+Arrays and maps are reference values in the VM and can hold other ZS values. The CLI state store lives for one VM invocation only. This is not yet a persistent ECS component store, a cross-module global system, or the production engine API registry; those are still required for live gameplay integration.
 
 ## Build and execute
 
@@ -68,4 +74,4 @@ zumbi_native compile gameplay.zs gameplay.zsc
 zumbi_native disasm gameplay.zsc gameplay.zsa\nzumbi_native run gameplay.zsc
 ```
 
-The VM starts the first function in the module; place `fn Main()` first. The VM enforces call-depth, stack, and instruction-count limits. The compiler and VM are an initial general-purpose foundation, not yet the complete language/runtime needed to port every original Unity gameplay system. Arrays/objects, modules/imports, event declarations, coroutines, debugger/source maps, and production engine bindings remain planned work.
+The VM starts the first function in the module; place `fn Main()` first. The VM enforces call-depth, stack, and instruction-count limits. The compiler and VM are an initial general-purpose foundation, not yet the complete language/runtime needed to port every original Unity gameplay system. Nested arrays/maps and the CLI state store now exist. Modules/imports, event declarations and dispatch, coroutines, debugger/source maps, typed capability-checked production engine bindings, and persistent entity/component state remain planned work.
