@@ -2,6 +2,9 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <array>
+#include <algorithm>
+#include <climits>
+#include <cstring>
 #include <cstdint>
 #include <fstream>
 #include <vector>
