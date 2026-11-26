@@ -1,6 +1,7 @@
 #include "asset_archive.hpp"
 #include "zs_compiler.hpp"
 #include <iostream>
+#include <cmath>
 #include <string>
 #include <variant>
 
@@ -42,6 +43,12 @@ int main(int argc, char** argv) {
                 }
                 std::cout << '\n';
                 return std::monostate{};
+            }
+            if (name == "sqrt" && args.size() == 1) {
+                if (const auto value = std::get_if<double>(&args[0]); value && *value >= 0.0) {
+                    return std::sqrt(*value);
+                }
+                return 0.0;
             }
             std::cerr << "Unregistered native API: " << name << '\n';
             return std::monostate{};
