@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "selftest") {
         std::string error;
         if (!zumbi::runEngineCoreSelfTests(error)) {
-            std::cerr << "engine selftest failed: " << error << '\\n';
+            std::cerr << "engine selftest failed: " << error << '\n';
             return 1;
         }
         std::cout << "Native world, event bus and fixed-step clock OK\\n";
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
                     if (i) std::cout << ' ';
                     std::cout << display(args[i]);
                 }
-                std::cout << '\\n';
+                std::cout << '\n';
                 return std::monostate{};
             }
             if (name == "sqrt" && args.size() == 1) {
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
                 state.erase(found);
                 return true;
             }
-            std::cerr << "Unregistered native API: " << name << '\\n';
+            std::cerr << "Unregistered native API: " << name << '\n';
             return std::monostate{};
         };
         if (!zumbi::ZsVm::run(argv[2], native, error)) {
