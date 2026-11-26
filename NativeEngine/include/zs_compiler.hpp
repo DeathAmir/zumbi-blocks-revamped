@@ -1,12 +1,19 @@
 #pragma once
 #include <filesystem>
 #include <functional>
+#include <memory>
+#include <unordered_map>
 #include <string>
 #include <variant>
 #include <vector>
 
 namespace zumbi {
-using ZsValue = std::variant<std::monostate, bool, double, std::string>;
+struct ZsArray;
+struct ZsMap;
+using ZsValue = std::variant<std::monostate, bool, double, std::string,
+                             std::shared_ptr<ZsArray>, std::shared_ptr<ZsMap>>;
+struct ZsArray { std::vector<ZsValue> values; };
+struct ZsMap { std::unordered_map<std::string, ZsValue> values; };
 using ZsNativeCall = std::function<ZsValue(const std::string&, const std::vector<ZsValue>&)>;
 
 class ZsCompiler {
