@@ -29,6 +29,8 @@ jobs:
           $wrongKey = "10112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
           .\build\Release\zumbi_native.exe unpack test.zbp rejected.bin $wrongKey
           if ($LASTEXITCODE -eq 0) { throw "Wrong key was accepted" }
+          Write-Output "Wrong key correctly rejected"
+          exit 0
       - name: Test Zumbi Scripts compiler and VM
         shell: pwsh
         run: |
