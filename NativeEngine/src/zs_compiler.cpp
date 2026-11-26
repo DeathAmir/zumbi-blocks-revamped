@@ -97,13 +97,35 @@ template<class T>void wr(std::ostream&o,const T&v){o.write((const char*)&v,sizeo
 template<class T>bool rd(std::istream&i,T&v){return(bool)i.read((char*)&v,sizeof(v));}
 void wrs(std::ostream&o,const std::string&s){auto n=(std::uint32_t)s.size();wr(o,n);o.write(s.data(),n);}
 bool rds(std::istream&i,std::string&s){std::uint32_t n;if(!rd(i,n)||n>16*1024*1024)return false;s.resize(n);return !n||(bool)i.read(s.data(),n);}
+
+std::vector<std::uint8_t> rleEncode(const std::string& src){
+ std::vector<std::uint8_t> out;std::size_t i=0;
+ while(i<src.size()){
+  std::size_t run=1;while(i+run<src.size()&&src[i+run]==src[i]&&run<128)++run;
+  if(run>=4){out.push_back((std::uint8_t)(0x80u|(run-1)));out.push_back((std::uint8_t)src[i]);i+=run;continue;}
+  auto begin=i;i+=run;
+  while(i<src.size()&&i-begin<128){std::size_t n=1;while(i+n<src.size()&&src[i+n]==src[i]&&n<128)++n;if(n>=4||i-begin+n>128)break;i+=n;}
+  auto count=i-begin;out.push_back((std::uint8_t)(count-1));for(std::size_t j=begin;j<i;++j)out.push_back((std::uint8_t)src[j]);
+ }
+ return out;
+}
+bool rleDecode(const std::vector<std::uint8_t>&src,std::size_t expected,std::string&dst){
+ dst.clear();dst.reserve(expected);std::size_t i=0;
+ while(i<src.size()){auto c=src[i++];std::size_t n=(c&127u)+1;if(c&128u){if(i>=src.size()||n>expected-dst.size())return false;dst.append(n,(char)src[i++]);}else{if(n>src.size()-i||n>expected-dst.size())return false;dst.append((const char*)src.data()+i,n);i+=n;}}
+ return dst.size()==expected;
+}
+
 struct Module{std::vector<std::string> strings;std::vector<double> numbers;std::vector<Fn> functions;};
 bool load(const std::filesystem::path&p,Module&m,std::string&e){
- std::ifstream f(p,std::ios::binary);std::array<char,8> magic{};if(!f||!f.read(magic.data(),8)||magic!=std::array<char,8>{'Z','S','C','V','M','0','0','1'}){e="Invalid ZSC module.";return false;}
- std::uint32_t ns,nn,nf;if(!rd(f,ns)||!rd(f,nn)||!rd(f,nf)||ns>100000||nn>100000||nf>10000){e="Invalid ZSC tables.";return false;}
- for(std::uint32_t i=0;i<ns;++i){std::string s;if(!rds(f,s)){e="Bad ZSC strings.";return false;}m.strings.push_back(std::move(s));}
- for(std::uint32_t i=0;i<nn;++i){double n;if(!rd(f,n)){e="Bad ZSC constants.";return false;}m.numbers.push_back(n);}
- for(std::uint32_t i=0;i<nf;++i){Fn fn;std::uint32_t np,nl,ni;if(!rds(f,fn.symbol)||!rd(f,np)||!rd(f,nl)||!rd(f,ni)||np>4096||nl>65536||ni>10000000){e="Bad ZSC function.";return false;}fn.locals=nl;fn.params.resize(np);for(auto&v:fn.params)if(!rds(f,v)){e="Bad ZSC params.";return false;}for(std::uint32_t j=0;j<ni;++j){std::uint8_t op;Ins x;if(!rd(f,op)||!rd(f,x.a)||!rd(f,x.b)||op>(std::uint8_t)Op::Ret){e="Bad ZSC opcode.";return false;}x.op=(Op)op;fn.code.push_back(x);}m.functions.push_back(std::move(fn));}
+ std::ifstream file(p,std::ios::binary);std::array<char,8>magic{};std::uint64_t rawSize=0,storedSize=0;std::uint8_t compressed=0;
+ if(!file||!file.read(magic.data(),8)||magic!=std::array<char,8>{'Z','S','C','V','M','0','0','2'}||!rd(file,rawSize)||!rd(file,storedSize)||!rd(file,compressed)||rawSize>256ull*1024*1024||storedSize>256ull*1024*1024){e="Invalid ZSC module header.";return false;}
+ std::vector<std::uint8_t>bytes((std::size_t)storedSize);if(storedSize&&!file.read((char*)bytes.data(),(std::streamsize)storedSize)){e="Truncated ZSC payload.";return false;}
+ std::string raw;if(compressed){if(!rleDecode(bytes,(std::size_t)rawSize,raw)){e="Invalid compressed ZSC payload.";return false;}}else{if(storedSize!=rawSize){e="Invalid raw ZSC length.";return false;}raw.assign((const char*)bytes.data(),bytes.size());}
+ std::istringstream in(raw,std::ios::binary);std::uint32_t ns,nn,nf;
+ if(!rd(in,ns)||!rd(in,nn)||!rd(in,nf)||ns>100000||nn>100000||nf>10000){e="Invalid ZSC tables.";return false;}
+ for(std::uint32_t i=0;i<ns;++i){std::string v;if(!rds(in,v)){e="Bad ZSC strings.";return false;}m.strings.push_back(std::move(v));}
+ for(std::uint32_t i=0;i<nn;++i){double n;if(!rd(in,n)){e="Bad ZSC constants.";return false;}m.numbers.push_back(n);}
+ for(std::uint32_t i=0;i<nf;++i){Fn fn;std::uint32_t np,nl,ni;if(!rds(in,fn.symbol)||!rd(in,np)||!rd(in,nl)||!rd(in,ni)||np>4096||nl>65536||ni>10000000){e="Bad ZSC function.";return false;}fn.locals=nl;fn.params.resize(np);for(auto&v:fn.params)if(!rds(in,v)){e="Bad ZSC params.";return false;}for(std::uint32_t j=0;j<ni;++j){std::uint8_t op;Ins x;if(!rd(in,op)||!rd(in,x.a)||!rd(in,x.b)||op>(std::uint8_t)Op::Ret){e="Bad ZSC opcode.";return false;}x.op=(Op)op;fn.code.push_back(x);}m.functions.push_back(std::move(fn));}
  return true;
 }
 bool truth(const ZsValue&v){if(std::holds_alternative<std::monostate>(v))return false;if(auto p=std::get_if<bool>(&v))return *p;if(auto p=std::get_if<double>(&v))return *p!=0;if(auto p=std::get_if<std::string>(&v))return !p->empty();return false;}
@@ -145,10 +167,17 @@ bool ZsCompiler::compile(const std::filesystem::path&input,const std::filesystem
  Compiler c(std::move(tokens));std::vector<Fn>functions;std::vector<std::string>strings;std::vector<double>numbers;if(!c.run(functions,strings,numbers,error))return false;
  std::random_device rd;std::mt19937 rng(rd());static constexpr char alphabet[]="abcdefghijklmnopqrstuvwxyz0123456789";std::unordered_map<std::string,bool>used;
  for(auto&fn:functions){do{fn.symbol.clear();for(int i=0;i<3;++i)fn.symbol+=alphabet[rng()%36];}while(used.contains(fn.symbol));used[fn.symbol]=true;}
- std::ofstream out(output,std::ios::binary);if(!out){error="Cannot create ZSC output.";return false;}const std::array<char,8>magic{'Z','S','C','V','M','0','0','1'};out.write(magic.data(),8);
- auto ns=(std::uint32_t)strings.size(),nn=(std::uint32_t)numbers.size(),nf=(std::uint32_t)functions.size();wr(out,ns);wr(out,nn);wr(out,nf);
- for(auto&s:strings)wrs(out,s);for(auto n:numbers)wr(out,n);
- for(auto&fn:functions){wrs(out,fn.symbol);auto np=(std::uint32_t)fn.params.size(),ni=(std::uint32_t)fn.code.size();wr(out,np);wr(out,fn.locals);wr(out,ni);for(auto&p:fn.params)wrs(out,p);for(auto&x:fn.code){auto op=(std::uint8_t)x.op;wr(out,op);wr(out,x.a);wr(out,x.b);}}
+ std::ostringstream payload(std::ios::binary);
+ auto ns=(std::uint32_t)strings.size(),nn=(std::uint32_t)numbers.size(),nf=(std::uint32_t)functions.size();wr(payload,ns);wr(payload,nn);wr(payload,nf);
+ for(auto&v:strings)wrs(payload,v);for(auto n:numbers)wr(payload,n);
+ for(auto&fn:functions){wrs(payload,fn.symbol);auto np=(std::uint32_t)fn.params.size(),ni=(std::uint32_t)fn.code.size();wr(payload,np);wr(payload,fn.locals);wr(payload,ni);for(auto&p:fn.params)wrs(payload,p);for(auto&x:fn.code){auto op=(std::uint8_t)x.op;wr(payload,op);wr(payload,x.a);wr(payload,x.b);}}
+ auto raw=payload.str();auto packed=rleEncode(raw);const bool useCompression=packed.size()<raw.size();
+ std::ofstream out(output,std::ios::binary);if(!out){error="Cannot create ZSC output.";return false;}
+ const std::array<char,8>magic{'Z','S','C','V','M','0','0','2'};out.write(magic.data(),8);
+ auto rawSize=(std::uint64_t)raw.size();auto storedSize=(std::uint64_t)(useCompression?packed.size():raw.size());std::uint8_t flag=useCompression?1:0;
+ wr(out,rawSize);wr(out,storedSize);wr(out,flag);
+ if(useCompression){if(!packed.empty())out.write((const char*)packed.data(),(std::streamsize)packed.size());}
+ else if(!raw.empty())out.write(raw.data(),(std::streamsize)raw.size());
  if(!out){error="Failed writing ZSC.";return false;}return true;
 }
 
