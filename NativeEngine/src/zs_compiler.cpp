@@ -151,6 +151,33 @@ bool ZsCompiler::compile(const std::filesystem::path&input,const std::filesystem
  for(auto&fn:functions){wrs(out,fn.symbol);auto np=(std::uint32_t)fn.params.size(),ni=(std::uint32_t)fn.code.size();wr(out,np);wr(out,fn.locals);wr(out,ni);for(auto&p:fn.params)wrs(out,p);for(auto&x:fn.code){auto op=(std::uint8_t)x.op;wr(out,op);wr(out,x.a);wr(out,x.b);}}
  if(!out){error="Failed writing ZSC.";return false;}return true;
 }
+
+bool ZsCompiler::disassemble(const std::filesystem::path&input,const std::filesystem::path&output,std::string&error){
+ Module m;if(!load(input,m,error))return false;
+ std::ofstream out(output);if(!out){error="Cannot create ZSA listing.";return false;}
+ out<<"; Zumbi Script Assembly v1 - stripped low-level listing\n";
+ out<<"; Source names and source locations are intentionally absent.\n";
+ for(std::size_t i=0;i<m.functions.size();++i){
+  const auto&fn=m.functions[i];out<<"\n.function "<<fn.symbol<<" ; index "<<i<<" params "<<fn.params.size()<<" locals "<<fn.locals<<"\n";
+  for(std::size_t pc=0;pc<fn.code.size();++pc){
+   const auto&x=fn.code[pc];out<<"  "<<pc<<" ";
+   switch(x.op){
+    case Op::ConstNum:out<<"PUSH_NUM "<<(x.a>=0&&(std::size_t)x.a<m.numbers.size()?std::to_string(m.numbers[x.a]):"INVALID");break;
+    case Op::ConstStr:out<<"PUSH_STR "<<(x.a>=0&&(std::size_t)x.a<m.strings.size()?m.strings[x.a]:"INVALID");break;
+    case Op::True:out<<"PUSH_TRUE";break;case Op::False:out<<"PUSH_FALSE";break;case Op::Null:out<<"PUSH_NULL";break;
+    case Op::Load:out<<"LOAD_LOCAL "<<x.a;break;case Op::Store:out<<"STORE_LOCAL "<<x.a;break;case Op::Pop:out<<"POP";break;
+    case Op::Add:out<<"ADD";break;case Op::Sub:out<<"SUB";break;case Op::Mul:out<<"MUL";break;case Op::Div:out<<"DIV";break;case Op::Mod:out<<"MOD";break;
+    case Op::Neg:out<<"NEG";break;case Op::Not:out<<"NOT";break;case Op::Eq:out<<"EQ";break;case Op::Ne:out<<"NE";break;case Op::Lt:out<<"LT";break;case Op::Le:out<<"LE";break;case Op::Gt:out<<"GT";break;case Op::Ge:out<<"GE";break;
+    case Op::Jump:out<<"JUMP "<<x.a;break;case Op::JumpFalse:out<<"JUMP_FALSE "<<x.a;break;case Op::Call:out<<"CALL_FUNCTION "<<x.a<<" "<<x.b;break;
+    case Op::Native:out<<"CALL_NATIVE "<<(x.a>=0&&(std::size_t)x.a<m.strings.size()?m.strings[x.a]:"INVALID")<<" "<<x.b;break;case Op::Ret:out<<"RETURN";break;
+   }
+   out<<"\n";
+  }
+  out<<".end\n";
+ }
+ if(!out){error="Failed writing ZSA listing.";return false;}return true;
+}
+
 bool ZsVm::run(const std::filesystem::path&bytecode,const ZsNativeCall&nativeCall,std::string&error){
  Module m;if(!load(bytecode,m,error))return false;if(m.functions.empty()){error="Empty ZSC module.";return false;}std::uint64_t budget=10000000;ZsValue ret;return exec(m,0,{},nativeCall,0,budget,ret,error);
 }
