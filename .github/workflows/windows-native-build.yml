@@ -15,6 +15,10 @@ jobs:
         run: cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --config Release --parallel
+      - name: Test native engine core
+        run: |
+          .\build\Release\zumbi_native.exe selftest
+          if ($LASTEXITCODE -ne 0) { throw "Native engine core self-test failed" }
       - name: Test encrypted archive
         shell: pwsh
         run: |
