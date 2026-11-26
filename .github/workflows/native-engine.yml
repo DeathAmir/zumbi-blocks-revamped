@@ -1,0 +1,30 @@
+name: Native Engine CI
+on:
+  push:
+    branches: [custom-engine-migration]
+  pull_request:
+    branches: [custom-engine-migration]
+  workflow_dispatch:
+jobs:
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OpenSSL
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev
+      - name: Configure
+        run: cmake -S NativeEngine -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test encrypted archive
+        shell: bash
+        run: |
+          printf 'zumbi native archive smoke test' > input.bin
+          KEY=00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+          ./build/zumbi_native pack input.bin test.zpak "$KEY"
+          ./build/zumbi_native unpack test.zpak output.bin "$KEY"
+          cmp input.bin output.bin
+          if ./build/zumbi_native unpack test.zpak rejected.bin 10112233445566778899aabbccddeeff00112233445566778899aabbccddeeff; then
+            echo "Wrong key unexpectedly accepted"
+            exit 1
+          fi
