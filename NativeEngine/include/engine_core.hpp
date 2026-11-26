@@ -26,8 +26,6 @@ struct EngineEvent {
     std::vector<double> values;
 };
 
-inline constexpr Entity firstEntitySentinel = 1;
-
 class World {
 public:
     Entity createEntity();
