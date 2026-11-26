@@ -124,8 +124,8 @@ bool runEngineCoreSelfTests(std::string& error) {
     }
     int received = 0;
     EventBus bus;
-    const auto subscription = bus.subscribe("damage", [&received](const EngineEvent& event) {
-        if (event.source == firstEntitySentinel && event.values.size() == 1 && event.values[0] == 12.0) ++received;
+    const auto subscription = bus.subscribe("damage", [&received, first](const EngineEvent& event) {
+        if (event.source == first && event.values.size() == 1 && event.values[0] == 12.0) ++received;
     });
     if (!subscription) {
         error = "Event subscription failed.";
