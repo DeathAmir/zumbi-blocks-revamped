@@ -23,6 +23,15 @@ int main(int argc, char** argv) {
         std::cout << "ZS compiled to binary ZSC bytecode\n";
         return 0;
     }
+    if (argc == 4 && std::string(argv[1]) == "disasm") {
+        std::string error;
+        if (!zumbi::ZsCompiler::disassemble(argv[2], argv[3], error)) {
+            std::cerr << "zsa failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "ZSC disassembled to stripped ZSA listing\n";
+        return 0;
+    }
     if (argc == 3 && std::string(argv[1]) == "run") {
         std::string error;
         const zumbi::ZsNativeCall native = [](const std::string& name, const std::vector<zumbi::ZsValue>& args) -> zumbi::ZsValue {
