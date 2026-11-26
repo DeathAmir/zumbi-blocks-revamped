@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
               << "Usage:\n"
               << "  zumbi_native compile <input.zs> <output.zsc>\n"
               << "  zumbi_native run <module.zsc>\n"
+              << "  zumbi_native disasm <module.zsc> <output.zsa>\n"
               << "  zumbi_native pack <input-file> <output.zbp> <64-char-key-hex>\n"
               << "  zumbi_native unpack <input.zbp> <output-file> <64-char-key-hex>\n";
     return 0;
