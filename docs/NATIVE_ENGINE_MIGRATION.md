@@ -2,7 +2,9 @@
 
 ## Current state
 
-This branch contains a C++20 native-engine bootstrap, an authenticated asset-file primitive, and the first Zumbi Scripts compiler pass. It does **not** yet replace the Unity game or convert the Unity scenes, prefabs, models, textures, animations, or audio.
+This branch contains a C++20 native-engine bootstrap, an authenticated single-file asset primitive, a Zumbi Scripts compiler/VM, and CLI-hosted arrays, maps, and run-scoped state APIs. Four gameplay logic slices now have ZS prototypes and automated VM tests: player stats, player movement, enemy combat, and wave progression. This is a partial code migration; it does **not** yet replace the Unity game or convert the Unity scenes, prefabs, models, textures, animations, or audio.
+
+The source inventory and per-script status are tracked in [UNITY_SCRIPT_INVENTORY.md](UNITY_SCRIPT_INVENTORY.md). Prototype scripts are deliberately marked as logic-only until they are integrated with a live native entity, physics, input, UI, and asset runtime.
 
 The source project is Unity 2020.1.14f1. Its gameplay code is coupled to Unity APIs including `MonoBehaviour`, `CharacterController`, `Physics`, `NavMeshAgent`, `Animator`, `AudioSource`, `ScriptableObject`, and Unity scene/prefab serialization.
 
@@ -21,7 +23,7 @@ The native engine exposes a versioned, capability-checked API to scripts. ZS nev
 
 1. Inventory and export every source asset and record GUID/reference relationships.
 2. Implement native runtime foundations: window/rendering, input, math, scene graph, resource loading, physics, audio, animation, navigation, and UI.
-3. Expand ZS/ZSA/ZSC: expressions, variables, events, control flow, typed native bindings, bytecode VM, validation, and compression.
+3. Expand ZS/ZSA/ZSC: nested data collections and run-scoped state are prototyped; next add modules/imports, events, coroutines, typed capability-checked native bindings, validation, and compression hardening.
 4. Port player movement/stats/inventory and combat.
 5. Port enemy AI, navigation, ragdolls, spawning, waves, and loot.
 6. Rebuild menu, HUD, settings, save/configuration, and scene flow in ZS over native UI.
