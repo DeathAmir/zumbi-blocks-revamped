@@ -28,3 +28,22 @@ jobs:
             echo "Wrong key unexpectedly accepted"
             exit 1
           fi
+      - name: Test Zumbi Scripts gameplay modules
+        shell: bash
+        run: |
+          declare -A expected=(
+            [gameplay]="Zumbi Scripts VM gameplay logic OK"
+            [player_stats]="PlayerStats port tests OK"
+            [enemy_combat]="Enemy combat port tests OK"
+            [player_movement]="PlayerMovement port tests OK"
+            [wave_director]="WaveDirector port tests OK"
+            [collections]="ZS collections and state tests OK"
+          )
+          for name in "${!expected[@]}"; do
+            ./build/zumbi_native compile "NativeEngine/tests/$name.zs" "$name.zsc"
+            output=$(./build/zumbi_native run "$name.zsc")
+            grep -F "${expected[$name]}" <<< "$output"
+            if [[ "$name" == "collections" ]]; then
+              grep -F "ZS collection mutation tests OK" <<< "$output"
+            fi
+          done
