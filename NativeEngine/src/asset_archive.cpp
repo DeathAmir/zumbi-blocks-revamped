@@ -18,7 +18,7 @@
 
 namespace zumbi {
 namespace {
-constexpr std::array<char, 8> magic{'Z','B','R','P','A','K','1','\\0'};
+constexpr std::array<char, 8> magic{'Z','B','R','P','A','K','1',static_cast<char>(0)};
 constexpr std::size_t key_size = 32, nonce_size = 12, tag_size = 16;
 
 bool decode_key(const std::string& hex, std::array<unsigned char,key_size>& key) {
