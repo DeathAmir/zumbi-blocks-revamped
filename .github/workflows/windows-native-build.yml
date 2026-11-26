@@ -34,6 +34,10 @@ jobs:
         run: |
           .\build\Release\zumbi_native.exe compile NativeEngine/tests/gameplay.zs gameplay.zsc
           if ($LASTEXITCODE -ne 0) { throw "ZS compilation failed" }
+          .\\build\\Release\\zumbi_native.exe disasm gameplay.zsc gameplay.zsa
+          if ($LASTEXITCODE -ne 0) { throw "ZSA disassembly failed" }
+          $listing = Get-Content gameplay.zsa -Raw
+          if ($listing -notmatch "\\.function [a-z0-9]{3}") { throw "Randomized assembly symbols missing" }
           $output = & .\build\Release\zumbi_native.exe run gameplay.zsc 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0) { throw "ZSC VM execution failed: $output" }
           if ($output -notmatch "Zumbi Scripts VM gameplay logic OK") { throw "Gameplay VM result mismatch: $output" }
