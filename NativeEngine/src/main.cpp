@@ -1,4 +1,5 @@
 #include "asset_archive.hpp"
+#include "engine_core.hpp"
 #include "zs_compiler.hpp"
 #include <iostream>
 #include <cmath>
@@ -18,6 +19,15 @@ std::string display(const zumbi::ZsValue& value) {
 }
 
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "selftest") {
+        std::string error;
+        if (!zumbi::runEngineCoreSelfTests(error)) {
+            std::cerr << "engine selftest failed: " << error << '\\n';
+            return 1;
+        }
+        std::cout << "Native world, event bus and fixed-step clock OK\\n";
+        return 0;
+    }
     if (argc == 4 && std::string(argv[1]) == "compile") {
         std::string error;
         if (!zumbi::ZsCompiler::compile(argv[2], argv[3], error)) {
