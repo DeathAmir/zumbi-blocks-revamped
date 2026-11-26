@@ -12,8 +12,8 @@ Game behavior is authored in ZS: player and enemy state machines, weapons, inven
 
 - `.zs`: editable high-level source.
 - ZSC compiler: lexer, parser, semantic checks, bytecode generation, and per-build three-character function symbols.
-- `.zsc`: binary VM bytecode module. It contains constants, local slots, function metadata, and VM instructions; source-level function names are not stored in the runtime function table.
-- ZSA: planned readable assembler/debug listing for developer builds only. It is not shipped in release bundles.
+- `.zsc`: binary VM bytecode module with size-checked RLE compression when it reduces the payload. It contains constants, local slots, function metadata, and VM instructions; source-level function names are not stored in the runtime function table.
+- ZSA: readable stripped assembler/debug listing generated with `zumbi_native disasm module.zsc module.zsa`. It shows VM instructions and randomized function symbols, not the original source function names. It is not shipped in release bundles.
 - ZSC VM: bounded stack interpreter with function calls, local variables, arithmetic, comparisons, branches, loops, native API calls, and a per-run instruction budget.
 - `.zbp`: final encrypted bundle format. The target package name is `ZBR Engine.zbp`; it will hold ZSC modules and encrypted game assets.
 
@@ -65,7 +65,7 @@ The engine API names above describe the intended binding style; only the CLI `lo
 
 ```sh
 zumbi_native compile gameplay.zs gameplay.zsc
-zumbi_native run gameplay.zsc
+zumbi_native disasm gameplay.zsc gameplay.zsa\nzumbi_native run gameplay.zsc
 ```
 
 The VM starts the first function in the module; place `fn Main()` first. The VM enforces call-depth, stack, and instruction-count limits. The compiler and VM are an initial general-purpose foundation, not yet the complete language/runtime needed to port every original Unity gameplay system. Arrays/objects, modules/imports, event declarations, coroutines, debugger/source maps, and production engine bindings remain planned work.
