@@ -39,7 +39,8 @@ jobs:
             @{ File = "player_stats"; Expected = "PlayerStats port tests OK" },
             @{ File = "enemy_combat"; Expected = "Enemy combat port tests OK" },
             @{ File = "player_movement"; Expected = "PlayerMovement port tests OK" },
-            @{ File = "wave_director"; Expected = "WaveDirector port tests OK" }
+            @{ File = "wave_director"; Expected = "WaveDirector port tests OK" },
+            @{ File = "collections"; Expected = "ZS collections and state tests OK" }
           )
           foreach ($test in $tests) {
             $source = "NativeEngine/tests/$($test.File).zs"
@@ -49,6 +50,7 @@ jobs:
             $output = & .\build\Release\zumbi_native.exe run $bytecode 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "ZSC VM execution failed: $source; output: $output" }
             if ($output -notmatch [regex]::Escape($test.Expected)) { throw "Gameplay result mismatch: $source; output: $output" }
+            if ($test.File -eq "collections" -and $output -notmatch "ZS collection mutation tests OK") { throw "Collection mutation tests failed: $output" }
             Write-Output "$($test.File): passed"
           }
           .\build\Release\zumbi_native.exe disasm gameplay.zsc gameplay.zsa
