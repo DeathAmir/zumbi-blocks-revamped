@@ -27,19 +27,16 @@ jobs:
           if ((Get-FileHash input.bin).Hash -ne (Get-FileHash output.bin).Hash) { throw "Round-trip mismatch" }
           $wrongKey = "10112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
           .\build\Release\zumbi_native.exe unpack test.zbp rejected.bin $wrongKey
-          $wrongKeyExit = $LASTEXITCODE
-          if ($wrongKeyExit -eq 0) { throw "Wrong key was accepted" }
-          $global:LASTEXITCODE = 0
-          exit 0
-      - name: Test Zumbi Scripts compiler
+          if ($LASTEXITCODE -eq 0) { throw "Wrong key was accepted" }
+      - name: Test Zumbi Scripts compiler and VM
         shell: pwsh
         run: |
-          .\build\Release\zumbi_native.exe compile samples/ui/main.zs main.zsa
+          .\build\Release\zumbi_native.exe compile NativeEngine/tests/gameplay.zs gameplay.zsc
           if ($LASTEXITCODE -ne 0) { throw "ZS compilation failed" }
-          $assembly = Get-Content main.zsa
-          if (-not ($assembly -match '^\.function [a-z0-9]{3}$')) { throw "Missing randomized 3-character function symbol" }
-          if (-not ($assembly -match '^  UI_PANEL "hud"$')) { throw "Missing UI_PANEL instruction" }
-          if (-not ($assembly -match '^  UI_TEXT "health" "100"$')) { throw "Missing UI_TEXT instruction" }
+          $output = & .\build\Release\zumbi_native.exe run gameplay.zsc 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) { throw "ZSC VM execution failed: $output" }
+          if ($output -notmatch "Zumbi Scripts VM gameplay logic OK") { throw "Gameplay VM result mismatch: $output" }
+          if ($output -notmatch "Wave 3") { throw "Loop/function test did not execute: $output" }
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
