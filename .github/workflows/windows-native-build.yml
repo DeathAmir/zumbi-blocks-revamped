@@ -11,23 +11,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
-      - name: Install OpenSSL
-        shell: pwsh
-        run: vcpkg install openssl:x64-windows
       - name: Configure
-        shell: pwsh
-        run: >
-          cmake -S NativeEngine -B build
-          -A x64
-          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
-          -DVCPKG_TARGET_TRIPLET=x64-windows
-          -DVCPKG_MANIFEST_MODE=OFF
-          -DVCPKG_INSTALLED_DIR="$env:VCPKG_ROOT/installed"
-          -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test encrypted archive
@@ -42,7 +27,10 @@ jobs:
           if ((Get-FileHash input.bin).Hash -ne (Get-FileHash output.bin).Hash) { throw "Round-trip mismatch" }
           $wrongKey = "10112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
           .\build\Release\zumbi_native.exe unpack test.zpak rejected.bin $wrongKey
-          if ($LASTEXITCODE -eq 0) { throw "Wrong key was accepted" }
+          $wrongKeyExit = $LASTEXITCODE
+          if ($wrongKeyExit -eq 0) { throw "Wrong key was accepted" }
+          $global:LASTEXITCODE = 0
+          exit 0
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
