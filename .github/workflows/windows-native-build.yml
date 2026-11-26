@@ -20,17 +20,26 @@ jobs:
         run: |
           Set-Content -NoNewline -Encoding ascii input.bin "zumbi native archive smoke test"
           $key = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
-          .\build\Release\zumbi_native.exe pack input.bin test.zpak $key
+          .\build\Release\zumbi_native.exe pack input.bin test.zbp $key
           if ($LASTEXITCODE -ne 0) { throw "Pack failed" }
-          .\build\Release\zumbi_native.exe unpack test.zpak output.bin $key
+          .\build\Release\zumbi_native.exe unpack test.zbp output.bin $key
           if ($LASTEXITCODE -ne 0) { throw "Unpack failed" }
           if ((Get-FileHash input.bin).Hash -ne (Get-FileHash output.bin).Hash) { throw "Round-trip mismatch" }
           $wrongKey = "10112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
-          .\build\Release\zumbi_native.exe unpack test.zpak rejected.bin $wrongKey
+          .\build\Release\zumbi_native.exe unpack test.zbp rejected.bin $wrongKey
           $wrongKeyExit = $LASTEXITCODE
           if ($wrongKeyExit -eq 0) { throw "Wrong key was accepted" }
           $global:LASTEXITCODE = 0
           exit 0
+      - name: Test Zumbi Scripts compiler
+        shell: pwsh
+        run: |
+          .\build\Release\zumbi_native.exe compile samples/ui/main.zs main.zsa
+          if ($LASTEXITCODE -ne 0) { throw "ZS compilation failed" }
+          $assembly = Get-Content main.zsa
+          if (-not ($assembly -match '^\.function [a-z0-9]{3}$')) { throw "Missing randomized 3-character function symbol" }
+          if (-not ($assembly -match '^  UI_PANEL "hud"$')) { throw "Missing UI_PANEL instruction" }
+          if (-not ($assembly -match '^  UI_TEXT "health" "100"$')) { throw "Missing UI_TEXT instruction" }
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
