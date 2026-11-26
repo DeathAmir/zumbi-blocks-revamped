@@ -14,6 +14,9 @@ public:
     static bool compile(const std::filesystem::path& input,
                         const std::filesystem::path& output,
                         std::string& error);
+    static bool disassemble(const std::filesystem::path& input,
+                            const std::filesystem::path& output,
+                            std::string& error);
 };
 
 class ZsVm {
