@@ -16,6 +16,8 @@ jobs:
         run: cmake -S NativeEngine -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --parallel
+      - name: Test native engine core
+        run: ./build/zumbi_native selftest
       - name: Test encrypted archive
         shell: bash
         run: |
