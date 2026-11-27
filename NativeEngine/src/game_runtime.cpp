@@ -227,6 +227,49 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         if(name=="input.consume"||name=="input.key_pressed") it->second=false;
         return value;
     }
+    if(name=="array.new"&&args.empty()) return std::make_shared<ZsArray>();
+    if(name=="array.push"&&args.size()==2) {
+        const auto array=std::get_if<std::shared_ptr<ZsArray>>(&args[0]);
+        if(!array||!*array) return false;
+        (*array)->values.push_back(args[1]);
+        return static_cast<double>((*array)->values.size());
+    }
+    if(name=="array.get"&&args.size()==2) {
+        const auto array=std::get_if<std::shared_ptr<ZsArray>>(&args[0]);
+        double index{}; if(!array||!*array||!n(1,index)||index<0||index>=static_cast<double>((*array)->values.size())||std::floor(index)!=index) return std::monostate{};
+        return (*array)->values[static_cast<std::size_t>(index)];
+    }
+    if(name=="array.set"&&args.size()==3) {
+        const auto array=std::get_if<std::shared_ptr<ZsArray>>(&args[0]);
+        double index{}; if(!array||!*array||!n(1,index)||index<0||index>=static_cast<double>((*array)->values.size())||std::floor(index)!=index) return false;
+        (*array)->values[static_cast<std::size_t>(index)]=args[2]; return true;
+    }
+    if(name=="array.size"&&args.size()==1) {
+        const auto array=std::get_if<std::shared_ptr<ZsArray>>(&args[0]);
+        return array&&*array?ZsValue(static_cast<double>((*array)->values.size())):ZsValue(0.0);
+    }
+    if(name=="array.pop"&&args.size()==1) {
+        const auto array=std::get_if<std::shared_ptr<ZsArray>>(&args[0]);
+        if(!array||!*array||(*array)->values.empty()) return std::monostate{};
+        auto value=(*array)->values.back(); (*array)->values.pop_back(); return value;
+    }
+    if(name=="map.new"&&args.empty()) return std::make_shared<ZsMap>();
+    if(name=="map.set"&&args.size()==3) {
+        const auto map=std::get_if<std::shared_ptr<ZsMap>>(&args[0]);
+        const auto key=std::get_if<std::string>(&args[1]);
+        if(!map||!*map||!key) return false;
+        (*map)->values[*key]=args[2]; return args[2];
+    }
+    if((name=="map.get"||name=="map.has"||name=="map.erase")&&args.size()==2) {
+        const auto map=std::get_if<std::shared_ptr<ZsMap>>(&args[0]);
+        const auto key=std::get_if<std::string>(&args[1]);
+        if(!map||!*map||!key) return std::monostate{};
+        const auto found=(*map)->values.find(*key);
+        if(name=="map.has") return found!=(*map)->values.end();
+        if(found==(*map)->values.end()) return std::monostate{};
+        if(name=="map.get") return found->second;
+        (*map)->values.erase(found); return true;
+    }
     if(name=="controls.set"&&args.size()==2) {
         std::string action,key; if(!s(0,action)||!s(1,key)||action.empty()||key.empty()) return false;
         state_["controls."+action]=key; return true;
