@@ -99,12 +99,17 @@ jobs:
           Copy-Item NativeEngine/scripts/player_system.zsc build/GamePackage/Game/ZBR/Scripts/player_system.zsc
           .\build\Release\zumbi_native.exe asset-verify build/GamePackage
           if ($LASTEXITCODE -ne 0) { throw "Signed asset verification failed" }
+          Push-Location build/GamePackage
+          cmake -E tar cf "../ZBR Engine.zbp" --format=zip Game
+          if ($LASTEXITCODE -ne 0) { Pop-Location; throw "ZBR Engine.zbp archive creation failed" }
+          Pop-Location
       - name: Upload Windows executable and game package
         uses: actions/upload-artifact@v4
         with:
           name: zumbi-native-windows-x64
           path: |
             build/Release/zumbi_native.exe
+            "build/ZBR Engine.zbp"
             build/GamePackage/Game/**
           if-no-files-found: warn
 ) { throw "Could not derive asset public key" }
