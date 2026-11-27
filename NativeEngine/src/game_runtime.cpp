@@ -69,19 +69,19 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         const Entity id=world_.createEntity();
         auto& p=players_[id];
         p={{"health",100.0},{"maxHealth",100.0},{"armor",100.0},{"attackDamage",10.0},
-           {"stamina",100.0},{"maxStamina",100.0},{"minStamina",10.0},
+           {"stamina",40.0},{"maxStamina",40.0},{"minStamina",8.0},
            {"currentNoise",0.0},{"smelliness",0.0},{"dead",false},{"bleeding",false},
            {"dummy",false},{"immortal",false},{"tireless",false},{"silent",false},
            {"unbleedable",false},{"movementState",0.0},{"verticalVelocity",0.0},
-           {"walkingSpeed",10.0},{"sprintingSpeed",16.0},{"crouchingSpeed",4.0},
-           {"standingHeight",2.0},{"crouchingHeight",1.0},{"currentHeight",2.0},
-           {"jumpHeight",1.2},{"currentSpeed",10.0},{"bleedingDuration",0.0},
+           {"walkingSpeed",6.0},{"sprintingSpeed",10.0},{"crouchingSpeed",2.0},
+           {"standingHeight",2.4},{"crouchingHeight",1.2},{"currentHeight",2.0},
+           {"jumpHeight",1.5},{"currentSpeed",6.0},{"bleedingDuration",0.0},
            {"nextBleed",0.0},{"averageBleedingDuration",60.0},{"bleedingVariation",10.0},
-           {"bleedingDamage",2.0},{"bleedingRate",0.7},{"noiseReduction",2.0},
-           {"standingNoise",0.0},{"walkingNoise",5.0},{"sprintingNoise",15.0},
-           {"crouchingNoise",1.0},{"jumpingNoise",10.0},{"standingStaminaGain",5.0},
-           {"walkingStaminaGain",2.0},{"sprintingStaminaGain",-8.0},{"crouchingStaminaGain",4.0},
-           {"aerialStaminaGain",-2.0},{"jumpingStaminaCost",10.0}};
+           {"bleedingDamage",1.0},{"bleedingRate",0.5},{"noiseReduction",2.0},
+           {"standingNoise",0.0},{"walkingNoise",400.0},{"sprintingNoise",800.0},
+           {"crouchingNoise",150.0},{"jumpingNoise",800.0},{"standingStaminaGain",6.0},
+           {"walkingStaminaGain",4.0},{"sprintingStaminaGain",-7.0},{"crouchingStaminaGain",5.0},
+           {"aerialStaminaGain",2.0},{"jumpingStaminaCost",10.0}};
         return static_cast<double>(id);
     }
     if(name=="player.destroy"&&args.size()==1) {
@@ -167,7 +167,15 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     }
     if(name=="ui.click"&&args.size()==1) {
         std::string id; if(!s(0,id)) return false;
-        const auto it=ui_.find(id); if(it==ui_.end()||!it->second.enabled||!it->second.visible) return false;
+        auto it=ui_.find(id);
+        if(it==ui_.end()||!it->second.enabled) return false;
+        const UiNodeState* node=&it->second;
+        while(node) {
+            if(!node->visible) return false;
+            if(node->parent.empty()) break;
+            const auto parent=ui_.find(node->parent);
+            node=parent==ui_.end()?nullptr:&parent->second;
+        }
         input_["ui.clicked."+id]=true;
         events_.publish({"ui.click",0,{it->second.actionArgument}});
         return true;
