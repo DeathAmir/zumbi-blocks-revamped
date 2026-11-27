@@ -63,6 +63,7 @@ int main(int argc, char** argv) {
             return 1;
         }
         runtime.setInput("testMode", false);
+        runtime.setInput("verifyGameOver", true);
         runtime.setInput("deltaTime", 1.0 / 60.0);
         if (!runtime.run("NativeEngine/scripts/player_system.zsc", error)) {
             std::cerr << "persistent game tick selftest failed: " << error << '\n';
