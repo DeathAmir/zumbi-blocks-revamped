@@ -269,4 +269,39 @@ bool AssetPackage::verify(const std::filesystem::path& root,const std::string& t
     if(!count) { error="Manifest contains no assets."; return false; }
     return true;
 }
+
+bool AssetPackage::selfTest(std::string& error) {
+    const auto base=std::filesystem::temp_directory_path()/"zbr_asset_package_selftest";
+    const auto source=base/"source";
+    const auto output=base/"output";
+    std::error_code ec;
+    std::filesystem::remove_all(base,ec);
+    std::filesystem::create_directories(source/"nested folder");
+    {
+        std::ofstream file(source/"nested folder"/"asset.bin",std::ios::binary);
+        const std::string payload="Zumbi Blocks signed asset package test";
+        file.write(payload.data(),static_cast<std::streamsize>(payload.size()));
+        if(!file) { error="Could not create asset self-test fixture."; return false; }
+    }
+    {
+        std::ofstream file(source/"empty.dat",std::ios::binary);
+        if(!file) { error="Could not create empty asset fixture."; return false; }
+    }
+    const std::string privateKey="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+    std::string publicKey;
+    if(!derivePublicKey(privateKey,publicKey,error)||!pack(source,output,privateKey,error)||
+       !verify(output,publicKey,error)) {
+        std::filesystem::remove_all(base,ec);
+        return false;
+    }
+    {
+        std::ofstream signature(output/"Game"/"ZBR"/"Content"/"manifest.sig",std::ios::binary|std::ios::app);
+        signature.put('x');
+    }
+    std::string tamperError;
+    const bool tamperAccepted=verify(output,publicKey,tamperError);
+    std::filesystem::remove_all(base,ec);
+    if(tamperAccepted) { error="Tampered manifest was accepted."; return false; }
+    return true;
+}
 }
