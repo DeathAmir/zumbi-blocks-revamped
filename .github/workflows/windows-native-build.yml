@@ -109,7 +109,7 @@ jobs:
           name: zumbi-native-windows-x64
           path: |
             build/Release/zumbi_native.exe
-            "build/ZBR Engine.zbp"
+            build/ZBR Engine.zbp
             build/GamePackage/Game/**
           if-no-files-found: warn
 ) { throw "Could not derive asset public key" }
