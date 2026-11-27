@@ -179,7 +179,7 @@ fn inventory_pickup(id, picked) {
             if (existingStack > 0) {
                 if (item.get(existingStack, "definitionId") == definition) {
                     sameSlot = stackIndex;
-                    break;
+                    stackIndex = 10;
                 }
             } else {
                 if (emptySlot == 0) { emptySlot = stackIndex; }
