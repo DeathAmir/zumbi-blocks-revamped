@@ -22,9 +22,9 @@ try {
     if (!$opensslHeader -or !$opensslLibrary -or !$zlibHeader -or !$zlibLibrary) {
         throw "Precompiled OpenSSL or zlib headers/libraries are missing."
     }
-    $opensslDllDir = Join-Path $root "build/prebuilt/openssl/runtimes/win-x64/native"
-    if (!(Test-Path $opensslDllDir)) { throw "OpenSSL x64 runtime DLL directory is missing." }
-    $opensslCryptoDll = Get-ChildItem $opensslDllDir -Filter libcrypto-3-x64.dll | Select-Object -First 1
+    $opensslCryptoDll = Get-ChildItem build/prebuilt/openssl -Recurse -File -Filter libcrypto-3-x64.dll | Select-Object -First 1
+    if (!$opensslCryptoDll) { throw "Precompiled OpenSSL crypto DLL is missing." }
+    $opensslDllDir = $opensslCryptoDll.DirectoryName
     if (!$opensslCryptoDll) { throw "Precompiled OpenSSL crypto DLL is missing." }
     cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DOPENSSL_INCLUDE_DIR="$($opensslHeader.Directory.Parent.FullName)" -DOPENSSL_CRYPTO_LIBRARY="$($opensslLibrary.FullName)" -DOPENSSL_CRYPTO_DLL="$($opensslCryptoDll.FullName)" -DZLIB_INCLUDE_DIR="$($zlibHeader.DirectoryName)" -DZLIB_LIBRARY_RELEASE="$($zlibLibrary.FullName)" -DZLIB_LIBRARY="$($zlibLibrary.FullName)"
     if ($LASTEXITCODE -ne 0) { throw "CMake configure failed." }
