@@ -20,6 +20,7 @@ std::string valueText(const ZsValue& value) {
 }
 NativeGameRuntime::NativeGameRuntime() : random_(0x5a42524u) {
     input_["cameraYaw"]=0.0;
+    input_["deltaTime"]=1.0/60.0;
     input_["MoveForward"]=false;
     input_["MoveBackward"]=false;
     input_["MoveLeft"]=false;
@@ -87,7 +88,7 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         Entity id{}; if(!entity(args,0,id)) return false;
         players_.erase(id); return world_.destroyEntity(id);
     }
-    if((name=="player.get"||name=="player.set")&&(args.size()==2||args.size()==3)) {
+    if((name=="player.get"&&args.size()==2)||(name=="player.set"&&args.size()==3)) {
         Entity id{}; std::string key;
         if(!entity(args,0,id)||!s(1,key)) return std::monostate{};
         auto& p=players_[id];
@@ -99,6 +100,22 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         const auto it=input_.find(key); return it==input_.end()?ZsValue(false):it->second;
     }
     if(name=="game.active"&&args.empty()) return gameActive_;
+    if(name=="time.delta"&&args.empty()) {
+        const auto it=input_.find("deltaTime");
+        return it==input_.end()?ZsValue(1.0/60.0):it->second;
+    }
+    if(name=="state.set"&&args.size()==2) {
+        std::string key; if(!s(0,key)) return false;
+        state_[key]=args[1]; return args[1];
+    }
+    if((name=="state.get"||name=="state.has"||name=="state.erase")&&args.size()==1) {
+        std::string key; if(!s(0,key)) return std::monostate{};
+        const auto it=state_.find(key);
+        if(name=="state.has") return it!=state_.end();
+        if(it==state_.end()) return std::monostate{};
+        if(name=="state.get") return it->second;
+        state_.erase(it); return true;
+    }
     if(name=="physics.grounded"&&args.size()==1) {
         Entity id{}; if(!entity(args,0,id)) return false;
         const auto it=input_.find("grounded"); return it!=input_.end()&&truthy(it->second);
@@ -141,6 +158,14 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         else if(name=="ui.enabled") node.enabled=truthy(args[1]);
         else { double value{}; if(!n(1,value)) return false; node.alpha=std::clamp(value,0.0,1.0); }
         return true;
+    }
+    if(name=="ui.get_visible"&&args.size()==1) {
+        std::string id; if(!s(0,id)) return false;
+        const auto it=ui_.find(id); return it!=ui_.end()&&it->second.visible;
+    }
+    if(name=="ui.get_value"&&args.size()==1) {
+        std::string id; if(!s(0,id)) return 0.0;
+        const auto it=ui_.find(id); return it==ui_.end()?ZsValue(0.0):ZsValue(it->second.value);
     }
     if(name=="ui.value"&&args.size()==3) {
         std::string id; double value{},maximum{};
