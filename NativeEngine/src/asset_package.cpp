@@ -194,7 +194,7 @@ bool AssetPackage::pack(const std::filesystem::path& source,const std::filesyste
         if(entry.is_symlink()) continue;
         if(!entry.is_regular_file()) continue;
         const auto path=entry.path();
-        if(path.extension()==".cs"||path.extension()==".dll"||path.extension()==".pdb") continue;
+        if(path.extension()==".cs"||path.extension()==".pdb") continue;
         if(path.string().find(absoluteOutput.string())==0) continue;
         files.push_back(path);
     }
@@ -258,15 +258,23 @@ bool AssetPackage::verify(const std::filesystem::path& root,const std::string& t
     std::uint64_t size=0;
     std::size_t count=0;
     while(lines>>hash>>size>>pathHex) {
-        if(hash.size()!=64||size>512ull*1024*1024) { error="Invalid manifest entry."; return false; }
+        Bytes decodedHash;
+        if(!decodeHex(hash,decodedHash,32)||size>512ull*1024*1024) { error="Invalid manifest entry."; return false; }
         std::string relative;
-        if(!unhexPath(pathHex,relative)) { error="Invalid asset path encoding."; return false; }
+        if(!unhexPath(pathHex,relative)||relative.empty()) { error="Invalid asset path encoding."; return false; }
         const std::filesystem::path rel(relative);
         if(rel.is_absolute()) { error="Absolute paths are forbidden in the manifest."; return false; }
         for(const auto& part:rel) if(part==".."||part==".") { error="Path traversal is forbidden in the manifest."; return false; }
         Bytes bytes;
         if(!readObject(content/"Objects"/(hash+".zba"),size,bytes)||hashBytes(bytes)!=hash) {
             error="Asset integrity check failed: "+relative; return false;
+        }
+        const auto mirror=root/"Game"/rel;
+        if(std::filesystem::exists(mirror)) {
+            Bytes mirrored;
+            if(!std::filesystem::is_regular_file(mirror)||!readFile(mirror,mirrored)||hashBytes(mirrored)!=hash) {
+                error="Mirrored game file does not match its signed asset: "+relative; return false;
+            }
         }
         ++count;
     }
@@ -297,6 +305,24 @@ bool AssetPackage::selfTest(std::string& error) {
        !verify(output,publicKey,error)) {
         std::filesystem::remove_all(base,ec);
         return false;
+    }
+    {
+        const auto mirror=output/"Game"/"nested folder"/"asset.bin";
+        std::filesystem::create_directories(mirror.parent_path());
+        std::filesystem::copy_file(source/"nested folder"/"asset.bin",mirror);
+        if(!verify(output,publicKey,error)) {
+            std::filesystem::remove_all(base,ec);
+            return false;
+        }
+        std::ofstream tampered(mirror,std::ios::binary|std::ios::trunc);
+        tampered<<"tampered mirror";
+        tampered.close();
+        std::string mirrorError;
+        if(verify(output,publicKey,mirrorError)) {
+            std::filesystem::remove_all(base,ec);
+            error="Tampered mirrored game file was accepted.";
+            return false;
+        }
     }
     {
         std::ofstream signature(output/"Game"/"ZBR"/"Content"/"manifest.sig",std::ios::binary|std::ios::app);
