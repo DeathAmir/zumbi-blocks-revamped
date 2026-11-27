@@ -69,6 +69,9 @@ private:
     bool string(const std::vector<ZsValue>& args, std::size_t index, std::string& value) const;
     bool entity(const std::vector<ZsValue>& args, std::size_t index, Entity& value) const;
     void fail(const std::string& message);
+    void loadOptions();
+    bool saveOptions(std::string& error) const;
+    std::string settingsPath() const;
 
     World world_;
     EventBus events_;
