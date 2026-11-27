@@ -8,6 +8,8 @@ on:
 jobs:
   windows-x64:
     runs-on: windows-2022
+    env:
+      ZBR_ASSET_SIGNING_PRIVATE_KEY: ${{ secrets.ZBR_ASSET_SIGNING_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,6 +23,13 @@ jobs:
           cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=x64-windows
       - name: Build
         run: cmake --build build --config Release --parallel
+      - name: Compile connected player and UI systems
+        shell: pwsh
+        run: |
+          .\build\Release\zumbi_native.exe compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
+          if ($LASTEXITCODE -ne 0) { throw "Player system ZS compile failed" }
+          .\build\Release\zumbi_native.exe game-selftest
+          if ($LASTEXITCODE -ne 0) { throw "Connected player and UI runtime tests failed" }
       - name: Test signed Zlib asset package
         shell: pwsh
         run: |
@@ -72,9 +81,30 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "ZSA disassembly failed" }
           $listing = Get-Content gameplay.zsa -Raw
           if ($listing -notmatch '\.function\s+[a-z0-9]{3}') { throw "Randomized assembly symbols missing" }
-      - name: Upload Windows executable
+      - name: Build and verify signed game content
+        if: env.ZBR_ASSET_SIGNING_PRIVATE_KEY != ''
+        shell: pwsh
+        run: |
+          $publicKey = (& .\build\Release\zumbi_native.exe asset-public-key-env | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $publicKey -notmatch '^[0-9a-f]{64}
+) { throw "Could not derive asset public key" }
+          Set-Content -NoNewline -Encoding ascii NativeEngine/keys/asset_signing_public_key.hex $publicKey
+          cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=x64-windows
+          if ($LASTEXITCODE -ne 0) { throw "Reconfigure with pinned public key failed" }
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { throw "Rebuild with pinned public key failed" }
+          .\build\Release\zumbi_native.exe compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
+          if ($LASTEXITCODE -ne 0) { throw "Player system compile failed" }
+          .\build\Release\zumbi_native.exe asset-pack Assets build/GamePackage
+          if ($LASTEXITCODE -ne 0) { throw "Asset packing failed" }
+          Copy-Item NativeEngine/scripts/player_system.zsc build/GamePackage/Game/ZBR/Scripts/player_system.zsc
+          .\build\Release\zumbi_native.exe asset-verify build/GamePackage
+          if ($LASTEXITCODE -ne 0) { throw "Signed asset verification failed" }
+      - name: Upload Windows executable and game package
         uses: actions/upload-artifact@v4
         with:
           name: zumbi-native-windows-x64
-          path: build/Release/zumbi_native.exe
-          if-no-files-found: error
+          path: |
+            build/Release/zumbi_native.exe
+            build/GamePackage/Game/**
+          if-no-files-found: warn
