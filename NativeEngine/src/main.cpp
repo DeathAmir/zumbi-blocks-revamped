@@ -1,4 +1,5 @@
 #include "asset_archive.hpp"
+#include "asset_package.hpp"
 #include "engine_core.hpp"
 #include "zs_compiler.hpp"
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <string>
 #include <variant>
 #include <unordered_map>
+#include <cstdlib>
 
 namespace {
 std::string display(const zumbi::ZsValue& value) {
@@ -19,6 +21,52 @@ std::string display(const zumbi::ZsValue& value) {
 }
 
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "asset-selftest") {
+        std::string error;
+        if (!zumbi::AssetPackage::selfTest(error)) {
+            std::cerr << "asset selftest failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "SHA-256, Zlib, Ed25519 signing and tamper checks OK\n";
+        return 0;
+    }
+    if (argc == 2 && std::string(argv[1]) == "asset-public-key-env") {
+        const char* privateKey = std::getenv("ZBR_ASSET_SIGNING_PRIVATE_KEY");
+        if (!privateKey || !*privateKey) {
+            std::cerr << "ZBR_ASSET_SIGNING_PRIVATE_KEY is not set.\n";
+            return 1;
+        }
+        std::string publicKey, error;
+        if (!zumbi::AssetPackage::derivePublicKey(privateKey, publicKey, error)) {
+            std::cerr << "asset key derivation failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << publicKey << '\n';
+        return 0;
+    }
+    if (argc == 4 && std::string(argv[1]) == "asset-pack") {
+        const char* privateKey = std::getenv("ZBR_ASSET_SIGNING_PRIVATE_KEY");
+        if (!privateKey || !*privateKey) {
+            std::cerr << "ZBR_ASSET_SIGNING_PRIVATE_KEY is not set.\n";
+            return 1;
+        }
+        std::string error;
+        if (!zumbi::AssetPackage::pack(argv[2], argv[3], privateKey, error)) {
+            std::cerr << "asset pack failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "Signed Zlib asset package created.\n";
+        return 0;
+    }
+    if (argc == 4 && std::string(argv[1]) == "asset-verify") {
+        std::string error;
+        if (!zumbi::AssetPackage::verify(argv[2], argv[3], error)) {
+            std::cerr << "asset verification failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "Asset signature and SHA-256 hashes verified.\n";
+        return 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "selftest") {
         std::string error;
         if (!zumbi::runEngineCoreSelfTests(error)) {
