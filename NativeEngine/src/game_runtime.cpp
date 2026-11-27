@@ -78,7 +78,12 @@ void NativeGameRuntime::fail(const std::string& message) { failed_=true; failure
 std::string NativeGameRuntime::settingsPath() const {
     const char* configured=std::getenv("ZBR_SETTINGS_PATH");
     if(configured&&*configured) return configured;
-    return (std::filesystem::current_path()/"Game"/"Config"/"settings.ini").string();
+    const auto current=std::filesystem::current_path();
+    if(current.filename()=="Bin"&&current.parent_path().filename()=="Game")
+        return (current.parent_path()/"Config"/"settings.ini").string();
+    if(current.filename()=="Game")
+        return (current/"Config"/"settings.ini").string();
+    return (current/"Game"/"Config"/"settings.ini").string();
 }
 void NativeGameRuntime::loadOptions() {
     std::ifstream file(settingsPath());
