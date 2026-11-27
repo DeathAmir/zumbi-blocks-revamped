@@ -640,8 +640,17 @@ fn ui_manager_init() {
 
     ui.create("menu.4", "panel", "canvas", 0, 0, 750, 430);
     ui.create("menu.4.volume", "slider", "menu.4", 375, -32, 746, 60);
+    ui.text("menu.4.volume.label", "Volume");
+    ui.action("menu.4.volume", "SetVolume", 0);
     ui.create("menu.4.resolution", "dropdown", "menu.4", 375, -94, 746, 60);
+    ui.text("menu.4.resolution.label", "Resolution");
+    ui.action("menu.4.resolution", "SetResolution", 0);
     ui.create("menu.4.quality", "dropdown", "menu.4", 375, -156, 746, 60);
+    ui.text("menu.4.quality.label", "Graphics quality");
+    ui.action("menu.4.quality", "SetGraphicsQuality", 0);
+    ui.create("menu.4.fullscreen", "toggle", "menu.4", 375, -217.5, 746, 60);
+    ui.text("menu.4.fullscreen", "Fullscreen");
+    ui.action("menu.4.fullscreen", "SetFullscreen", 0);
     ui.create("menu.4.controls", "button", "menu.4", 375, -333.5, 746, 55);
     ui.text("menu.4.controls", "Controls");
     ui.action("menu.4.controls", "Menu", 10);
@@ -653,6 +662,8 @@ fn ui_manager_init() {
     ui.action("menu.4.back", "Menu", 0);
 
     ui.create("menu.5", "panel", "canvas", 0, 0, 400, 200);
+    ui.create("menu.5.credits", "text", "menu.5", 198, -69.53792, 396, 160);
+    ui.text("menu.5.credits", "Design, code and idea by Leonardo Minhoca. Original game assets and attributions are retained with the source content.");
     ui.create("menu.5.back", "button", "menu.5", 200, -177, 396, 40);
     ui.text("menu.5.back", "Back");
     ui.action("menu.5.back", "Menu", 0);
