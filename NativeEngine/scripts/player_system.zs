@@ -20,7 +20,7 @@ fn Main() {
         player.set(id, "crouchingHeight", 1.2);
         player.set(id, "currentHeight", 2.4);
         player.set(id, "jumpHeight", 1.5);
-        player.set(id, "standingNoise", 0);
+        player.set(id, "standingNoise", 100);
         player.set(id, "walkingNoise", 400);
         player.set(id, "sprintingNoise", 800);
         player.set(id, "crouchingNoise", 150);
@@ -38,7 +38,6 @@ fn Main() {
         player.set(id, "bleedingDamage", 1);
         player.set(id, "bleedingRate", 0.5);
         player.set(id, "crouchHeightPercentage", 50);
-        player.set(id, "noiseReduction", 2);
         inventory.init(id, 1, 2, 3);
         let defaultItem = item.create(1, 0, 1, false, 0, 0, 0, "Default Melee", "");
         state.set("inventory.default." + id, defaultItem);
@@ -367,9 +366,10 @@ fn player_hurt(id, damage, bleedChance) {
         }
     }
     if (!player.get(id, "dummy")) {
-        ui.alpha("hud.hurt", 1);
+        let hurtPower = damage / player.get(id, "maxHealth");
+        ui.alpha("hud.hurt", hurtPower);
         state.set("hud.hurt_timer", 0.5);
-        state.set("hud.hurt_power", damage / player.get(id, "maxHealth"));
+        state.set("hud.hurt_power", hurtPower);
         ui.value("hud.health", max_number(health, 0), player.get(id, "maxHealth"));
     }
     if (health <= 0) {
@@ -383,9 +383,10 @@ fn player_bleed(id) {
     let health = player.get(id, "health") - player.get(id, "bleedingDamage");
     player.set(id, "health", health);
     if (!player.get(id, "dummy")) {
-        ui.alpha("hud.hurt", 1);
+        let hurtPower = player.get(id, "bleedingDamage") * 5 / player.get(id, "maxHealth");
+        ui.alpha("hud.hurt", hurtPower);
         state.set("hud.hurt_timer", 0.5);
-        state.set("hud.hurt_power", player.get(id, "bleedingDamage") * 5 / player.get(id, "maxHealth"));
+        state.set("hud.hurt_power", hurtPower);
         ui.value("hud.health", max_number(health, 0), player.get(id, "maxHealth"));
     }
     if (health <= 0) {
@@ -710,7 +711,7 @@ fn ui_close_menu(pause) {
 }
 
 fn ui_primary_message(message, duration) {
-    if (duration <= 0) { duration = 3; }
+    if (duration <= 0) { duration = 5; }
     ui.text("center.primary", message);
     ui.visible("center.primary", true);
     state.set("ui.primary_timer", duration);
