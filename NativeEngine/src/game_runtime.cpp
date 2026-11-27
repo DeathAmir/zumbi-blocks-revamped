@@ -32,6 +32,28 @@ NativeGameRuntime::NativeGameRuntime() : random_(0x5a42524u) {
     input_["Jump"]=false;
     input_["grounded"]=true;
     input_["ceiling"]=false;
+    state_["options.volume"]=1.0;
+    state_["options.fullscreen"]=false;
+    state_["options.resolution"]=0.0;
+    state_["options.quality"]=2.0;
+    events_.subscribe("game.pause",[this](const EngineEvent&){gameActive_=false;state_["game.paused"]=true;});
+    events_.subscribe("game.resume",[this](const EngineEvent&){gameActive_=true;state_["game.paused"]=false;});
+    events_.subscribe("game.quit",[this](const EngineEvent&){state_["game.quit"]=true;});
+    events_.subscribe("game.over",[this](const EngineEvent&){state_["game.over"]=true;gameActive_=false;});
+    events_.subscribe("scene.change",[this](const EngineEvent& event){
+        if(!event.values.empty()) state_["scene.index"]=event.values[0];
+        gameActive_=!event.values.empty()&&event.values[0]>0.0;
+    });
+    events_.subscribe("options.fullscreen.toggle",[this](const EngineEvent&){
+        const auto it=state_.find("options.fullscreen");
+        const bool current=it!=state_.end()&&truthy(it->second);
+        state_["options.fullscreen"]=!current;
+    });
+    events_.subscribe("options.fullscreen.set",[this](const EngineEvent& event){
+        if(!event.values.empty()) state_["options.fullscreen"]=event.values[0]!=0.0;
+    });
+    events_.subscribe("options.save",[this](const EngineEvent&){state_["options.saved"]=true;});
+    events_.subscribe("player.death",[this](const EngineEvent&){});
 }
 void NativeGameRuntime::setInput(const std::string& name,ZsValue value) { input_[name]=std::move(value); }
 void NativeGameRuntime::setGameActive(bool active) { gameActive_=active; }
@@ -121,6 +143,7 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     if(name=="player.create"&&args.empty()) {
         const Entity id=world_.createEntity();
         auto& p=players_[id];
+        playerOrder_.push_back(id);
         p={{"health",100.0},{"maxHealth",100.0},{"armor",100.0},{"attackDamage",10.0},
            {"stamina",40.0},{"maxStamina",40.0},{"minStamina",8.0},
            {"currentNoise",0.0},{"smelliness",0.0},{"dead",false},{"bleeding",false},
@@ -139,7 +162,10 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     }
     if(name=="player.destroy"&&args.size()==1) {
         Entity id{}; if(!entity(args,0,id)) return false;
-        players_.erase(id); return world_.destroyEntity(id);
+        players_.erase(id);
+        inventories_.erase(id);
+        playerOrder_.erase(std::remove(playerOrder_.begin(),playerOrder_.end(),id),playerOrder_.end());
+        return world_.destroyEntity(id);
     }
     if((name=="player.get"&&args.size()==2)||(name=="player.set"&&args.size()==3)) {
         Entity id{}; std::string key;
@@ -330,6 +356,15 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         const auto it=state_.find("controls."+action);
         return it==state_.end()?ZsValue(std::string{}):it->second;
     }
+    if(name=="options.get"&&args.size()==1) {
+        std::string key; if(!s(0,key)) return std::monostate{};
+        const auto it=state_.find("options."+key);
+        return it==state_.end()?ZsValue(std::monostate{}):it->second;
+    }
+    if(name=="options.set"&&args.size()==2) {
+        std::string key; if(!s(0,key)||key.empty()) return false;
+        state_["options."+key]=args[1]; return true;
+    }
     if(name=="game.active"&&args.empty()) return gameActive_;
     if(name=="time.delta"&&args.empty()) {
         const auto it=input_.find("deltaTime");
@@ -437,6 +472,15 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         std::string id; if(!s(0,id)) return 0.0;
         const auto it=ui_.find(id); return it==ui_.end()?ZsValue(0.0):ZsValue(it->second.value);
     }
+    if(name=="ui.change_value"&&args.size()==2) {
+        std::string id; double value{};
+        if(!s(0,id)||!n(1,value)) return false;
+        auto& node=ui_[id];
+        node.value=std::clamp(value,0.0,std::max(0.0,node.maximum));
+        input_["ui.changed."+id]=true;
+        return true;
+    }
+    if(name=="ui.node_count"&&args.empty()) return static_cast<double>(ui_.size());
     if(name=="ui.value"&&args.size()==3) {
         std::string id; double value{},maximum{};
         if(!s(0,id)||!n(1,value)||!n(2,maximum)) return false;
@@ -457,8 +501,33 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     if(name=="inventory.death_drop"&&args.size()==1) {
         Entity id{}; if(!entity(args,0,id)) return false; events_.publish({"inventory.death_drop",id,{}}); return true;
     }
+    if(name=="player_manager.add_spawn"&&args.size()==4) {
+        double x{},y{},z{},yaw{};
+        if(!n(0,x)||!n(1,y)||!n(2,z)||!n(3,yaw)) return false;
+        Transform spawn;
+        spawn.position={x,y,z};
+        spawn.rotation.y=yaw;
+        spawnPoints_.push_back(spawn);
+        return static_cast<double>(spawnPoints_.size());
+    }
+    if(name=="player_manager.clear_spawns"&&args.empty()) { spawnPoints_.clear(); return true; }
+    if(name=="player_manager.spawn"&&args.size()==1) {
+        Entity id{}; if(!entity(args,0,id)||spawnPoints_.empty()) return false;
+        std::uniform_int_distribution<std::size_t> pick(0,spawnPoints_.size()-1);
+        return world_.setTransform(id,spawnPoints_[pick(random_)]);
+    }
+    if(name=="player_manager.count"&&args.empty()) return static_cast<double>(playerOrder_.size());
+    if(name=="player_manager.dead_count"&&args.empty()) return static_cast<double>(deadPlayers_);
+    if(name=="player_manager.at"&&args.size()==1) {
+        double index{}; if(!n(0,index)||index<0||std::floor(index)!=index||index>=static_cast<double>(playerOrder_.size())) return 0.0;
+        return static_cast<double>(playerOrder_[static_cast<std::size_t>(index)]);
+    }
     if(name=="player_manager.death"&&args.size()==1) {
-        Entity id{}; if(!entity(args,0,id)) return false; events_.publish({"player.death",id,{}}); return true;
+        Entity id{}; if(!entity(args,0,id)) return false;
+        ++deadPlayers_;
+        events_.publish({"player.death",id,{}});
+        if(!playerOrder_.empty()&&deadPlayers_>=playerOrder_.size()) events_.publish({"game.over",id,{}});
+        return true;
     }
     if(name=="test.expect"&&args.size()==2) {
         std::string message;
