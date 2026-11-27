@@ -3,34 +3,41 @@ fn Main() {
         let id = player.create();
         state.set("player.entity", id);
         player.set(id, "health", 100);
+        player.set(id, "attackDamage", 14);
+        player.set(id, "smelliness", 8);
         player.set(id, "maxHealth", 100);
         player.set(id, "armor", 100);
-        player.set(id, "stamina", 100);
-        player.set(id, "maxStamina", 100);
-        player.set(id, "minStamina", 10);
-        player.set(id, "walkingSpeed", 10);
-        player.set(id, "sprintingSpeed", 16);
-        player.set(id, "crouchingSpeed", 4);
-        player.set(id, "standingHeight", 2);
-        player.set(id, "crouchingHeight", 1);
-        player.set(id, "currentHeight", 2);
-        player.set(id, "jumpHeight", 1.2);
+        player.set(id, "stamina", 40);
+        player.set(id, "maxStamina", 40);
+        player.set(id, "minStamina", 8);
+        player.set(id, "walkingSpeed", 6);
+        player.set(id, "acceleration", 6);
+        player.set(id, "aerialAcceleration", 2);
+        player.set(id, "slowResistance", 10);
+        player.set(id, "sprintingSpeed", 10);
+        player.set(id, "crouchingSpeed", 2);
+        player.set(id, "standingHeight", 2.4);
+        player.set(id, "crouchingHeight", 1.2);
+        player.set(id, "currentHeight", 2.4);
+        player.set(id, "jumpHeight", 1.5);
         player.set(id, "standingNoise", 0);
-        player.set(id, "walkingNoise", 5);
-        player.set(id, "sprintingNoise", 15);
-        player.set(id, "crouchingNoise", 1);
-        player.set(id, "jumpingNoise", 10);
-        player.set(id, "noiseReduction", 2);
-        player.set(id, "standingStaminaGain", 5);
-        player.set(id, "walkingStaminaGain", 2);
-        player.set(id, "sprintingStaminaGain", -8);
-        player.set(id, "crouchingStaminaGain", 4);
-        player.set(id, "aerialStaminaGain", -2);
+        player.set(id, "walkingNoise", 400);
+        player.set(id, "sprintingNoise", 800);
+        player.set(id, "crouchingNoise", 150);
+        player.set(id, "jumpingNoise", 800);
+        player.set(id, "noiseReduction", 1000);
+        player.set(id, "maxNoise", 3000);
+        player.set(id, "standingStaminaGain", 6);
+        player.set(id, "walkingStaminaGain", 4);
+        player.set(id, "sprintingStaminaGain", -7);
+        player.set(id, "crouchingStaminaGain", 5);
+        player.set(id, "aerialStaminaGain", 2);
         player.set(id, "jumpingStaminaCost", 10);
         player.set(id, "averageBleedingDuration", 60);
         player.set(id, "bleedingVariation", 10);
-        player.set(id, "bleedingDamage", 2);
-        player.set(id, "bleedingRate", 0.7);
+        player.set(id, "bleedingDamage", 1);
+        player.set(id, "bleedingRate", 0.5);
+        player.set(id, "crouchHeightPercentage", 50);
         player.set(id, "noiseReduction", 2);
         ui_manager_init();
         hud_initialize();
@@ -50,7 +57,7 @@ fn Main() {
         player_heal(id, 10, false);
         test.expect(player.get(id, "health") == 85, "Player healing mismatch");
         player_give_stamina(id, 50);
-        test.expect(player.get(id, "stamina") == 100, "Stamina cap mismatch");
+        test.expect(player.get(id, "stamina") == 40, "Stamina cap mismatch");
         ui_menu(4);
         test.expect(ui.get_visible("menu.4"), "UI menu selection did not activate the requested panel");
         test.expect(!ui.get_visible("menu.0"), "UI menu selection did not hide the previous panel");
@@ -256,7 +263,7 @@ fn player_movement_tick(id, dt) {
                     height = player.get(id, "standingHeight");
                     movement = 0;
                 } else {
-                    if (sprint && player.get(id, "stamina") > 0 && player.get(id, "stamina") >= player.get(id, "minStamina")) {
+                    if (sprint && player.get(id, "stamina") > 0 && (player.get(id, "stamina") >= player.get(id, "minStamina") || movement == 2)) {
                         speed = player.get(id, "sprintingSpeed");
                         height = player.get(id, "standingHeight");
                         movement = 2;
@@ -478,7 +485,7 @@ fn player_hud_tick(id, dt) {
     if (!player.get(id, "dummy")) {
         ui.value("hud.health", player.get(id, "health"), player.get(id, "maxHealth"));
         ui.value("hud.stamina", player.get(id, "stamina"), player.get(id, "maxStamina"));
-        ui.value("hud.noise", player.get(id, "currentNoise"), 100);
+        ui.value("hud.noise", player.get(id, "currentNoise"), 3000);
     }
     let hurt = state.get("hud.hurt_timer");
     if (hurt > 0) {
