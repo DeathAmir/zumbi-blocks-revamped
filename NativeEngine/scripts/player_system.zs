@@ -158,8 +158,17 @@ fn Main() {
         inventory_drop(id);
         test.expect(inventory.get(id, 1) == 0, "Dropped weapon still occupies its inventory slot");
         test.expect(item.get(rifle, "active") && item.get(rifle, "physicsEnabled"), "Dropped weapon was not returned to world physics");
+        let secondPlayer = player.create();
+        test.expect(player_manager.count() == 2, "Player manager did not track a second player");
+        player_death(secondPlayer);
+        test.expect(player_manager.dead_count() == 1, "Player death count did not increment");
+        player_death(id);
+        test.expect(player_manager.dead_count() == 2, "Player manager did not count all deaths");
         log("Player inventory pickup, stack, ammo and drop tests OK");
         log("Connected ZS player, movement and UI runtime tests OK");
+    }
+    if (input.get("verifyGameOver")) {
+        test.expect(state.get("game.over"), "Game over event was not dispatched when every player died");
     }
 }
 
