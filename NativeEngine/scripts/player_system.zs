@@ -702,15 +702,19 @@ fn ui_manager_init() {
 
     ui.create("menu.4", "panel", "canvas", 0, 0, 750, 430);
     ui.create("menu.4.volume", "slider", "menu.4", 375, -32, 746, 60);
+    ui.value("menu.4.volume", 1, 1);
     ui.text("menu.4.volume.label", "Volume");
     ui.action("menu.4.volume", "SetVolume", 0);
     ui.create("menu.4.resolution", "dropdown", "menu.4", 375, -94, 746, 60);
+    ui.value("menu.4.resolution", 0, 10);
     ui.text("menu.4.resolution.label", "Resolution");
     ui.action("menu.4.resolution", "SetResolution", 0);
     ui.create("menu.4.quality", "dropdown", "menu.4", 375, -156, 746, 60);
+    ui.value("menu.4.quality", 2, 3);
     ui.text("menu.4.quality.label", "Graphics quality");
     ui.action("menu.4.quality", "SetGraphicsQuality", 0);
     ui.create("menu.4.fullscreen", "toggle", "menu.4", 375, -217.5, 746, 60);
+    ui.value("menu.4.fullscreen", 0, 1);
     ui.text("menu.4.fullscreen", "Fullscreen");
     ui.action("menu.4.fullscreen", "SetFullscreen", 0);
     ui.create("menu.4.controls", "button", "menu.4", 375, -333.5, 746, 55);
