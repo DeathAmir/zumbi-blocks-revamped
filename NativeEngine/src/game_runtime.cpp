@@ -104,7 +104,7 @@ void NativeGameRuntime::loadOptions() {
 bool NativeGameRuntime::saveOptions(std::string& error) const {
     const std::filesystem::path path(settingsPath());
     std::error_code ec;
-    std::filesystem::create_directories(path.parent_path(),ec);
+    if(!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path(),ec);
     if(ec) { error="Could not create options directory: "+ec.message(); return false; }
     auto temporary=path;
     temporary += ".tmp";
@@ -118,7 +118,7 @@ bool NativeGameRuntime::saveOptions(std::string& error) const {
         if(const auto number=std::get_if<double>(&found->second)) value=*number;
         else if(const auto boolean=std::get_if<bool>(&found->second)) value=*boolean?1.0:0.0;
         else continue;
-        file<<key<<'='<<std::setprecision(17)<<value<<'\\n';
+        file<<key<<'='<<std::setprecision(17)<<value<<'\n';
     }
     file.flush();
     if(!file) { error="Could not flush options file."; file.close(); std::filesystem::remove(temporary,ec); return false; }
