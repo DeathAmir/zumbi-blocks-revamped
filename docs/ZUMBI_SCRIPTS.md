@@ -15,7 +15,7 @@ Game behavior is authored in ZS: player and enemy state machines, weapons, inven
 - `.zsc`: binary VM bytecode module with size-checked RLE compression when it reduces the payload. It contains constants, local slots, function metadata, and VM instructions; source-level function names are not stored in the runtime function table.
 - ZSA: readable stripped assembler/debug listing generated with `zumbi_native disasm module.zsc module.zsa`. It shows VM instructions and randomized function symbols, not the original source function names. It is not shipped in release bundles.
 - ZSC VM: bounded stack interpreter with function calls, local variables, arithmetic, comparisons, branches, loops, native API calls, and a per-run instruction budget.
-- `.zbp`: final encrypted bundle format. The target package name is `ZBR Engine.zbp`; it will hold ZSC modules and encrypted game assets.
+- `ZBR Engine.zbp`: current Windows package is a ZIP container with SHA-256-addressed Zlib-compressed content objects, an Ed25519-signed manifest, a pinned public key, the native executable/runtime DLLs, and the compiled player module. This package is signed and compressed, not encrypted. The separate AES-256-GCM file archive is a different command.
 
 The current ZSC format is binary, not source text. The current implementation does not claim that bytecode is impossible to reverse engineer. Native code, symbols, and runtime behavior can always be analyzed; encrypted ZBP distribution, randomized symbols, stripped debug metadata, and later opcode obfuscation raise the cost but are not an absolute guarantee.
 
@@ -59,19 +59,23 @@ Implemented language features:
 - Comparisons and short-circuit `&&` / `||`.
 - Native engine function calls such as `physics.setVelocity(...)`, `player.setHealth(...)`, `zombie.spawn(...)`, and `ui.text(...)` once those APIs are registered by the engine runtime.
 
-The engine API names above describe the intended binding style. The standalone CLI host currently registers `log`, `print`, `sqrt`, and these data APIs for deterministic VM tests:
+The standalone `run` CLI host registers `log`, `print`, `sqrt`, arrays, maps and run-scoped state. The connected `NativeGameRuntime` additionally registers these game APIs:
 
-- `array.new()`, `array.push(array, value)`, `array.get(array, index)`, `array.set(array, index, value)`, `array.size(array)`, `array.pop(array)`.
-- `map.new()`, `map.set(map, key, value)`, `map.get(map, key)`, `map.has(map, key)`, `map.erase(map, key)`.
-- `state.set(key, value)`, `state.get(key)`, `state.has(key)`, `state.erase(key)` for module-run state.
+- Player: `player.create/destroy/get/set/position`.
+- Player manager: `player_manager.add_spawn/clear_spawns/spawn/count/at/dead_count/death`.
+- Inventory and items: `inventory.init/get/set/select/selected/primary/secondary/melee/has_gun/target_item`; `item.create/destroy/get/set`.
+- Input and controls: `input.get/set/consume/key_down/key_pressed`; `controls.get/set`.
+- Simulation: `game.active`, `time.delta`, `camera.yaw`, `physics.grounded/ceiling/gravity_y/move`.
+- UI and options: `ui.create/action/click/text/visible/enabled/alpha/value/get_text/get_visible/get_value/change_value/node_count`; `options.get/set`.
+- Events and feedback: `event.emit`, `audio.play`, `particles.set`.
 
-Arrays and maps are reference values in the VM and can hold other ZS values. The CLI state store lives for one VM invocation only. This is not yet a persistent ECS component store, a cross-module global system, or the production engine API registry; those are still required for live gameplay integration.
+Arrays and maps are reference values in the VM and can hold other ZS values. In the connected runtime, player, inventory, UI, options and script state persist across repeated VM ticks in the same runtime instance; they are not yet serialized across application restarts. The current physics calls only update kinematic transforms and accept grounded/ceiling input from a future collision adapter. The UI calls maintain a retained node tree but do not draw a native window yet.
 
 ## Build and execute
 
 ```sh
 zumbi_native compile gameplay.zs gameplay.zsc
-zumbi_native disasm gameplay.zsc gameplay.zsa\nzumbi_native run gameplay.zsc
+zumbi_native disasm gameplay.zsc gameplay.zsa\nzumbi_native run gameplay.zsc\nzumbi_native game-loop NativeEngine/scripts/player_system.zsc 10
 ```
 
-The VM starts the first function in the module; place `fn Main()` first. The VM enforces call-depth, stack, and instruction-count limits. The compiler and VM are an initial general-purpose foundation, not yet the complete language/runtime needed to port every original Unity gameplay system. Nested arrays/maps and the CLI state store now exist. Modules/imports, event declarations and dispatch, coroutines, debugger/source maps, typed capability-checked production engine bindings, and persistent entity/component state remain planned work.
+The VM starts the first function in the module; place `fn Main()` first. The VM enforces call-depth, stack, and instruction-count limits. The compiler and VM are an initial general-purpose foundation, not yet the complete language/runtime needed to port every original Unity gameplay system. Nested arrays/maps, native player/inventory/UI/options APIs, event dispatch, spawn selection and repeated VM ticks now exist. Modules/imports, coroutines, debugger/source maps, typed capability-checked native API registration, collision physics, visible UI rendering, persistent save serialization and complete Unity gameplay parity remain planned work.
