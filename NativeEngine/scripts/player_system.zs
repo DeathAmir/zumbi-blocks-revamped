@@ -39,6 +39,10 @@ fn Main() {
         player.set(id, "bleedingRate", 0.5);
         player.set(id, "crouchHeightPercentage", 50);
         player.set(id, "noiseReduction", 2);
+        inventory.init(id, 1, 2, 3);
+        let defaultItem = item.create(1, 0, 1, false, 0, 0, 0, "Default Melee", "");
+        state.set("inventory.default." + id, defaultItem);
+        inventory_select_item(id);
         controls_init();
         ui_manager_init();
         hud_initialize();
@@ -46,6 +50,7 @@ fn Main() {
     let id = state.get("player.entity");
     if (game.active()) {
         player_movement_tick(id, time.delta());
+        inventory_tick(id);
         player_stats_tick(id, time.delta());
         player_hud_tick(id, time.delta());
         ui_manager_tick(time.delta());
@@ -67,7 +72,214 @@ fn Main() {
         ui_manager_tick(0.1);
         test.expect(!ui.get_visible("center.primary"), "UI message timer did not close the message");
         test.expect(!player.get(id, "dead"), "Player was unexpectedly marked dead");
+        let rifle = item.create(0, 101, 1, false, 30, 12, 60, "Rifle", "pickup.rifle");
+        inventory_pickup(id, rifle);
+        test.expect(inventory.get(id, 1) == rifle, "Primary weapon slot did not receive the rifle");
+        test.expect(inventory.has_gun(id), "Inventory gun tracking failed");
+        test.expect(!item.get(rifle, "active"), "Picked up weapon was not deactivated in world");
+        let stackA = item.create(2, 200, 3, false, 0, 0, 0, "Grenade", "pickup.grenade");
+        inventory_pickup(id, stackA);
+        let stackB = item.create(2, 200, 2, false, 0, 0, 0, "Grenade", "pickup.grenade");
+        inventory_pickup(id, stackB);
+        let stackSlot = inventory.get(id, 4);
+        test.expect(item.get(stackSlot, "amount") == 5, "Throwable stack merge failed");
+        test.expect(!item.get(stackB, "alive"), "Merged pickup instance was not retired");
+        let ammoBox = item.create(5, 300, 2, false, 0, 0, 0, "Rifle Ammo", "pickup.ammo");
+        inventory_pickup(id, ammoBox);
+        test.expect(item.get(rifle, "totalAmmo") == 120, "Ammo box did not use the target weapon capacity");
+        inventory.select(id, 1);
+        inventory_drop(id);
+        test.expect(inventory.get(id, 1) == 0, "Dropped weapon still occupies its inventory slot");
+        test.expect(item.get(rifle, "active") && item.get(rifle, "physicsEnabled"), "Dropped weapon was not returned to world physics");
+        log("Player inventory pickup, stack, ammo and drop tests OK");
         log("Connected ZS player, movement and UI runtime tests OK");
+    }
+}
+
+fn inventory_select_item(id) {
+    let selectedSlot = inventory.selected(id);
+    let selectedItem = inventory.get(id, selectedSlot);
+    let defaultItem = state.get("inventory.default." + id);
+    let i = 1;
+    while (i <= 9) {
+        let itemId = inventory.get(id, i);
+        if (itemId > 0) {
+            item.set(itemId, "equipped", itemId == selectedItem);
+            item.set(itemId, "active", itemId == selectedItem);
+        }
+        i = i + 1;
+    }
+    if (selectedItem == 0) {
+        selectedItem = defaultItem;
+        item.set(defaultItem, "active", true);
+        item.set(defaultItem, "equipped", true);
+    } else {
+        item.set(defaultItem, "active", false);
+        item.set(defaultItem, "equipped", false);
+    }
+    let name = item.get(selectedItem, "name");
+    let ammo = item.get(selectedItem, "ammo");
+    let totalAmmo = item.get(selectedItem, "totalAmmo");
+    if (item.get(selectedItem, "type") == 0) {
+        hud_weapon(name, ammo + "/" + totalAmmo);
+    } else {
+        hud_weapon(name, item.get(selectedItem, "amount"));
+    }
+    player.set(id, "hasGun", inventory.has_gun(id));
+    event.emit("inventory.selected", id, selectedSlot);
+}
+
+fn inventory_pickup(id, picked) {
+    if (picked <= 0 || !item.get(picked, "alive")) { return; }
+    let kind = item.get(picked, "type");
+    let definition = item.get(picked, "definitionId");
+    let amount = item.get(picked, "amount");
+    let full = true;
+    let targetSlot = 0;
+    if (kind == 0) {
+        if (!item.get(picked, "handgun")) {
+            targetSlot = inventory.primary(id);
+        } else {
+            targetSlot = inventory.secondary(id);
+        }
+        if (inventory.get(id, targetSlot) == 0) {
+            inventory.set(id, targetSlot, picked);
+            inventory.select(id, targetSlot);
+            full = false;
+        } else {
+            targetSlot = inventory_find_empty_extra(id);
+            if (targetSlot > 0) {
+                inventory.set(id, targetSlot, picked);
+                inventory.select(id, targetSlot);
+                full = false;
+            }
+        }
+    }
+    if (kind == 1) {
+        targetSlot = inventory.melee(id);
+        if (inventory.get(id, targetSlot) == 0) {
+            inventory.set(id, targetSlot, picked);
+            inventory.select(id, targetSlot);
+            full = false;
+        } else {
+            targetSlot = inventory_find_empty_extra(id);
+            if (targetSlot > 0) {
+                inventory.set(id, targetSlot, picked);
+                inventory.select(id, targetSlot);
+                full = false;
+            }
+        }
+    }
+    if (kind == 2 || kind == 3 || kind == 4) {
+        let sameSlot = 0;
+        let emptySlot = 0;
+        let i = 4;
+        while (i <= 9) {
+            let existing = inventory.get(id, i);
+            if (existing > 0) {
+                if (item.get(existing, "definitionId") == definition) {
+                    sameSlot = i;
+                    break;
+                }
+            } else {
+                if (emptySlot == 0) { emptySlot = i; }
+            }
+            i = i + 1;
+        }
+        if (sameSlot > 0) {
+            let existing = inventory.get(id, sameSlot);
+            item.set(existing, "amount", item.get(existing, "amount") + amount);
+            item.destroy(picked);
+            full = false;
+        } else {
+            if (emptySlot > 0) {
+                inventory.set(id, emptySlot, picked);
+                inventory.select(id, emptySlot);
+                full = false;
+            }
+        }
+    }
+    if (kind == 5 && inventory.has_gun(id)) {
+        let ammoTarget = 0;
+        let selected = inventory.get(id, inventory.selected(id));
+        if (selected > 0 && item.get(selected, "type") == 0) {
+            ammoTarget = selected;
+        } else {
+            let i = 1;
+            while (i <= 9 && ammoTarget == 0) {
+                let candidate = inventory.get(id, i);
+                if (candidate > 0 && item.get(candidate, "type") == 0) {
+                    ammoTarget = candidate;
+                }
+                i = i + 1;
+            }
+        }
+        if (ammoTarget > 0) {
+            let added = item.get(ammoTarget, "ammoBoxCapacity") * amount;
+            item.set(ammoTarget, "totalAmmo", item.get(ammoTarget, "totalAmmo") + added);
+            item.destroy(picked);
+            full = false;
+        }
+    }
+    if (!full) {
+        item.set(picked, "uiActive", false);
+        item.set(picked, "active", false);
+        item.set(picked, "physicsEnabled", false);
+        item.set(picked, "colliderEnabled", false);
+        audio.play(item.get(picked, "pickupSound"));
+        inventory_select_item(id);
+        event.emit("inventory.picked_up", id, picked);
+    }
+}
+
+fn inventory_find_empty_extra(id) {
+    let i = 4;
+    while (i <= 9) {
+        if (inventory.get(id, i) == 0) { return i; }
+        i = i + 1;
+    }
+    return 0;
+}
+
+fn inventory_drop(id) {
+    let slot = inventory.selected(id);
+    let dropped = inventory.get(id, slot);
+    if (dropped <= 0) { return; }
+    inventory.set(id, slot, 0);
+    item.set(dropped, "uiActive", true);
+    item.set(dropped, "active", true);
+    item.set(dropped, "physicsEnabled", true);
+    item.set(dropped, "colliderEnabled", true);
+    item.set(dropped, "equipped", false);
+    event.emit("item.dropped", id, dropped);
+    inventory_select_item(id);
+}
+
+fn inventory_death_drop(id) {
+    let i = 1;
+    while (i <= 9) {
+        inventory.select(id, i);
+        inventory_drop(id);
+        i = i + 1;
+    }
+}
+
+fn inventory_tick(id) {
+    if (player.get(id, "dead")) { return; }
+    let i = 1;
+    while (i <= 9) {
+        if (input.key_pressed(controls.get("ItemSlot" + i))) {
+            inventory.select(id, i);
+            inventory_select_item(id);
+        }
+        i = i + 1;
+    }
+    if (input.key_pressed(controls.get("ItemDrop"))) {
+        inventory_drop(id);
+    }
+    if (input.key_pressed(controls.get("ItemInteract"))) {
+        let target = inventory.target_item();
+        if (target > 0) { inventory_pickup(id, target); }
     }
 }
 
@@ -215,7 +427,7 @@ fn player_death(id) {
     if (player.get(id, "dead") || player.get(id, "immortal")) { return; }
     player.set(id, "dead", true);
     ui.visible("hud.death_screen", true);
-    inventory.death_drop(id);
+    inventory_death_drop(id);
     player_manager.death(id);
     event.emit("player.died", id, player.get(id, "health"));
 }
