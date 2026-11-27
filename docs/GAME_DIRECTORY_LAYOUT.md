@@ -1,6 +1,6 @@
 # Native game directory layout
 
-The asset packer creates a Windows-friendly game tree under `Game/`:
+The Windows packaging workflow stages the original `Assets/` tree plus the compiled `player_system.zsc`, then creates a Windows-friendly game tree under `Game/`. The package archive is `ZBR Engine.zbp` (ZIP container with signed content blobs):
 
 ```text
 Game/
@@ -32,6 +32,6 @@ Each asset is hashed before compression. Identical bytes share one object file. 
 - Signature: covers the complete manifest; the manifest covers every asset hash and path.
 - Verification: checks the pinned public key, signature, decompression bounds, path traversal, and SHA-256 for every object.
 
-Run `scripts/setup-asset-signing.ps1` from PowerShell after building the native executable. If GitHub CLI is authenticated, the script creates the repository secret itself. Otherwise it copies the private key to the clipboard and opens the exact GitHub secret setup URL. Never commit the private key.
+Run `scripts/setup-asset-signing.ps1` from PowerShell after building the native executable. The script generates the key once under `%USERPROFILE%\\.zbr\\asset-signing-private.hex`, reuses it on later runs, restricts its file ACL, derives the public key, and sends the private key to `gh secret set` through stdin when GitHub CLI is authenticated. If `gh` is unavailable, it prints instructions for adding the local file contents manually. Never commit the private key. The repository public-key file is intentionally blank until the owner runs this setup; the Windows signing job derives the pinned public key from the Actions secret before its final rebuild.
 
-Zlib and OpenSSL are linked from prebuilt vcpkg packages on Windows and system development packages on Linux.
+Zlib and OpenSSL are linked through vcpkg packages on Windows and system development packages on Linux. The Windows package step copies the vcpkg runtime DLLs into `Game/Bin` alongside `zumbi_native.exe`.
