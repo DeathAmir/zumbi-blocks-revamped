@@ -350,6 +350,7 @@ bool AssetPackage::selfTest(std::string& error) {
             error="Tampered runtime DLL was accepted.";
             return false;
         }
+        std::filesystem::copy_file(source/"Bin"/"runtime.dll",dllMirror,std::filesystem::copy_options::overwrite_existing);
     }
     {
         const auto mirror=output/"Game"/"nested folder"/"asset.bin";
@@ -368,6 +369,7 @@ bool AssetPackage::selfTest(std::string& error) {
             error="Tampered mirrored game file was accepted.";
             return false;
         }
+        std::filesystem::copy_file(source/"nested folder"/"asset.bin",mirror,std::filesystem::copy_options::overwrite_existing);
     }
     {
         std::ofstream signature(output/"Game"/"ZBR"/"Content"/"manifest.sig",std::ios::binary|std::ios::app);
