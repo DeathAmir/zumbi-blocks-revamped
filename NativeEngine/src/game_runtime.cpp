@@ -179,7 +179,7 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     if((name=="ui.text"||name=="ui.visible"||name=="ui.enabled"||name=="ui.alpha")&&args.size()==2) {
         std::string id; if(!s(0,id)) return false;
         auto& node=ui_[id];
-        if(name=="ui.text") { std::string value; if(!s(1,value)) return false; node.text=value; }
+        if(name=="ui.text") { node.text=valueText(args[1]); }
         else if(name=="ui.visible") node.visible=truthy(args[1]);
         else if(name=="ui.enabled") node.enabled=truthy(args[1]);
         else { double value{}; if(!n(1,value)) return false; node.alpha=std::clamp(value,0.0,1.0); }
