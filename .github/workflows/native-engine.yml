@@ -22,6 +22,7 @@ jobs:
         run: |
           ./build/zumbi_native compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
           ./build/zumbi_native game-selftest
+          ./build/zumbi_native game-loop NativeEngine/scripts/player_system.zsc 10
       - name: Test native engine core
         run: ./build/zumbi_native selftest
       - name: Test encrypted archive
