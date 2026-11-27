@@ -8,7 +8,15 @@
 
 namespace zumbi {
 struct UiNodeState {
+    std::string kind;
+    std::string parent;
     std::string text;
+    std::string action;
+    double x{};
+    double y{};
+    double width{};
+    double height{};
+    double actionArgument{};
     double value{};
     double maximum{1.0};
     double alpha{1.0};
