@@ -10,12 +10,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install OpenSSL
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev zlib1g-dev
       - name: Configure
         run: cmake -S NativeEngine -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --parallel
+      - name: Test signed Zlib asset package
+        run: ./build/zumbi_native asset-selftest
       - name: Test native engine core
         run: ./build/zumbi_native selftest
       - name: Test encrypted archive
