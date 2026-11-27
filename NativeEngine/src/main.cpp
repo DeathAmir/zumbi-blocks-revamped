@@ -83,6 +83,15 @@ int main(int argc, char** argv) {
         std::cout << "Signed Zlib asset package created.\n";
         return 0;
     }
+    if (argc == 3 && std::string(argv[1]) == "asset-verify") {
+        std::string error;
+        if (!zumbi::AssetPackage::verify(argv[2], ZBR_ASSET_PUBLIC_KEY_HEX, error)) {
+            std::cerr << "asset verification failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "Pinned-key asset signature and SHA-256 hashes verified.\n";
+        return 0;
+    }
     if (argc == 4 && std::string(argv[1]) == "asset-verify") {
         std::string error;
         if (!zumbi::AssetPackage::verify(argv[2], argv[3], error)) {
