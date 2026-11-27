@@ -15,8 +15,39 @@ add_executable(zumbi_native
 )
 target_include_directories(zumbi_native PRIVATE include)
 
-find_package(OpenSSL REQUIRED COMPONENTS Crypto)
-find_package(ZLIB REQUIRED)
+if(WIN32)
+    if(NOT OPENSSL_INCLUDE_DIR OR NOT EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/evp.h")
+        message(FATAL_ERROR "Precompiled OpenSSL headers are required on Windows.")
+    endif()
+    if(NOT OPENSSL_CRYPTO_LIBRARY OR NOT EXISTS "${OPENSSL_CRYPTO_LIBRARY}")
+        message(FATAL_ERROR "Precompiled OpenSSL crypto import library is required on Windows.")
+    endif()
+    if(NOT OPENSSL_CRYPTO_DLL OR NOT EXISTS "${OPENSSL_CRYPTO_DLL}")
+        message(FATAL_ERROR "Precompiled OpenSSL crypto DLL is required on Windows.")
+    endif()
+    if(NOT ZLIB_INCLUDE_DIR OR NOT EXISTS "${ZLIB_INCLUDE_DIR}/zlib.h")
+        message(FATAL_ERROR "Precompiled zlib headers are required on Windows.")
+    endif()
+    if(NOT ZLIB_LIBRARY_RELEASE OR NOT EXISTS "${ZLIB_LIBRARY_RELEASE}")
+        message(FATAL_ERROR "Precompiled zlib release library is required on Windows.")
+    endif()
+    add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
+    set_target_properties(OpenSSL::Crypto PROPERTIES
+        IMPORTED_CONFIGURATIONS RELEASE
+        IMPORTED_IMPLIB_RELEASE "${OPENSSL_CRYPTO_LIBRARY}"
+        IMPORTED_LOCATION_RELEASE "${OPENSSL_CRYPTO_DLL}"
+        INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+    )
+    add_library(ZLIB::ZLIB UNKNOWN IMPORTED GLOBAL)
+    set_target_properties(ZLIB::ZLIB PROPERTIES
+        IMPORTED_CONFIGURATIONS RELEASE
+        IMPORTED_LOCATION_RELEASE "${ZLIB_LIBRARY_RELEASE}"
+        INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIR}"
+    )
+else()
+    find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+    find_package(ZLIB REQUIRED)
+endif()
 target_link_libraries(zumbi_native PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
 
 if(WIN32)
