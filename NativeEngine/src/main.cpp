@@ -34,8 +34,8 @@ int main(int argc, char** argv) {
     }
     if (argc == 2 && std::string(argv[1]) == "game-selftest") {
         zumbi::NativeGameRuntime runtime;
-        runtime.setInput("MoveForward", true);
-        runtime.setInput("Sprint", true);
+        runtime.setInput("key.W", true);
+        runtime.setInput("key.LeftShift", true);
         runtime.setInput("testMode", true);
         runtime.setInput("deltaTime", 0.1);
         std::string error;
