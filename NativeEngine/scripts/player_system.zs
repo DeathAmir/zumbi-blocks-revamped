@@ -1,47 +1,47 @@
 fn Main() {
     if (!state.has("player.entity")) {
-        let id = player.create();
-        state.set("player.entity", id);
-        player.set(id, "health", 100);
-        player.set(id, "attackDamage", 14);
-        player.set(id, "smelliness", 8);
-        player.set(id, "maxHealth", 100);
-        player.set(id, "armor", 100);
-        player.set(id, "stamina", 40);
-        player.set(id, "maxStamina", 40);
-        player.set(id, "minStamina", 8);
-        player.set(id, "walkingSpeed", 6);
-        player.set(id, "acceleration", 6);
-        player.set(id, "aerialAcceleration", 2);
-        player.set(id, "slowResistance", 10);
-        player.set(id, "sprintingSpeed", 10);
-        player.set(id, "crouchingSpeed", 2);
-        player.set(id, "standingHeight", 2.4);
-        player.set(id, "crouchingHeight", 1.2);
-        player.set(id, "currentHeight", 2.4);
-        player.set(id, "jumpHeight", 1.5);
-        player.set(id, "standingNoise", 100);
-        player.set(id, "walkingNoise", 400);
-        player.set(id, "sprintingNoise", 800);
-        player.set(id, "crouchingNoise", 150);
-        player.set(id, "jumpingNoise", 800);
-        player.set(id, "noiseReduction", 1000);
-        player.set(id, "maxNoise", 3000);
-        player.set(id, "standingStaminaGain", 6);
-        player.set(id, "walkingStaminaGain", 4);
-        player.set(id, "sprintingStaminaGain", -7);
-        player.set(id, "crouchingStaminaGain", 5);
-        player.set(id, "aerialStaminaGain", 2);
-        player.set(id, "jumpingStaminaCost", 10);
-        player.set(id, "averageBleedingDuration", 60);
-        player.set(id, "bleedingVariation", 10);
-        player.set(id, "bleedingDamage", 1);
-        player.set(id, "bleedingRate", 0.5);
-        player.set(id, "crouchHeightPercentage", 50);
-        inventory.init(id, 1, 2, 3);
+        let newPlayerId = player.create();
+        state.set("player.entity", newPlayerId);
+        player.set(newPlayerId, "health", 100);
+        player.set(newPlayerId, "attackDamage", 14);
+        player.set(newPlayerId, "smelliness", 8);
+        player.set(newPlayerId, "maxHealth", 100);
+        player.set(newPlayerId, "armor", 100);
+        player.set(newPlayerId, "stamina", 40);
+        player.set(newPlayerId, "maxStamina", 40);
+        player.set(newPlayerId, "minStamina", 8);
+        player.set(newPlayerId, "walkingSpeed", 6);
+        player.set(newPlayerId, "acceleration", 6);
+        player.set(newPlayerId, "aerialAcceleration", 2);
+        player.set(newPlayerId, "slowResistance", 10);
+        player.set(newPlayerId, "sprintingSpeed", 10);
+        player.set(newPlayerId, "crouchingSpeed", 2);
+        player.set(newPlayerId, "standingHeight", 2.4);
+        player.set(newPlayerId, "crouchingHeight", 1.2);
+        player.set(newPlayerId, "currentHeight", 2.4);
+        player.set(newPlayerId, "jumpHeight", 1.5);
+        player.set(newPlayerId, "standingNoise", 100);
+        player.set(newPlayerId, "walkingNoise", 400);
+        player.set(newPlayerId, "sprintingNoise", 800);
+        player.set(newPlayerId, "crouchingNoise", 150);
+        player.set(newPlayerId, "jumpingNoise", 800);
+        player.set(newPlayerId, "noiseReduction", 1000);
+        player.set(newPlayerId, "maxNoise", 3000);
+        player.set(newPlayerId, "standingStaminaGain", 6);
+        player.set(newPlayerId, "walkingStaminaGain", 4);
+        player.set(newPlayerId, "sprintingStaminaGain", -7);
+        player.set(newPlayerId, "crouchingStaminaGain", 5);
+        player.set(newPlayerId, "aerialStaminaGain", 2);
+        player.set(newPlayerId, "jumpingStaminaCost", 10);
+        player.set(newPlayerId, "averageBleedingDuration", 60);
+        player.set(newPlayerId, "bleedingVariation", 10);
+        player.set(newPlayerId, "bleedingDamage", 1);
+        player.set(newPlayerId, "bleedingRate", 0.5);
+        player.set(newPlayerId, "crouchHeightPercentage", 50);
+        inventory.init(newPlayerId, 1, 2, 3);
         let defaultItem = item.create(1, 0, 1, false, 0, 0, 0, "Default Melee", "");
-        state.set("inventory.default." + id, defaultItem);
-        inventory_select_item(id);
+        state.set("inventory.default." + newPlayerId, defaultItem);
+        inventory_select_item(newPlayerId);
         controls_init();
         ui_manager_init();
         hud_initialize();
@@ -173,22 +173,22 @@ fn inventory_pickup(id, picked) {
     if (kind == 2 || kind == 3 || kind == 4) {
         let sameSlot = 0;
         let emptySlot = 0;
-        let i = 4;
-        while (i <= 9) {
-            let existing = inventory.get(id, i);
-            if (existing > 0) {
-                if (item.get(existing, "definitionId") == definition) {
-                    sameSlot = i;
+        let stackIndex = 4;
+        while (stackIndex <= 9) {
+            let existingStack = inventory.get(id, stackIndex);
+            if (existingStack > 0) {
+                if (item.get(existingStack, "definitionId") == definition) {
+                    sameSlot = stackIndex;
                     break;
                 }
             } else {
-                if (emptySlot == 0) { emptySlot = i; }
+                if (emptySlot == 0) { emptySlot = stackIndex; }
             }
-            i = i + 1;
+            stackIndex = stackIndex + 1;
         }
         if (sameSlot > 0) {
-            let existing = inventory.get(id, sameSlot);
-            item.set(existing, "amount", item.get(existing, "amount") + amount);
+            let mergedStack = inventory.get(id, sameSlot);
+            item.set(mergedStack, "amount", item.get(mergedStack, "amount") + amount);
             item.destroy(picked);
             full = false;
         } else {
@@ -205,13 +205,13 @@ fn inventory_pickup(id, picked) {
         if (selected > 0 && item.get(selected, "type") == 0) {
             ammoTarget = selected;
         } else {
-            let i = 1;
-            while (i <= 9 && ammoTarget == 0) {
-                let candidate = inventory.get(id, i);
+            let ammoIndex = 1;
+            while (ammoIndex <= 9 && ammoTarget == 0) {
+                let candidate = inventory.get(id, ammoIndex);
                 if (candidate > 0 && item.get(candidate, "type") == 0) {
                     ammoTarget = candidate;
                 }
-                i = i + 1;
+                ammoIndex = ammoIndex + 1;
             }
         }
         if (ammoTarget > 0) {
