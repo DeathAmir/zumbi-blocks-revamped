@@ -10,6 +10,20 @@
 #include <unordered_map>
 #include <cstdlib>
 
+std::string environmentVariable(const char* name) {
+#ifdef _MSC_VER
+    char* value = nullptr;
+    std::size_t length = 0;
+    if (_dupenv_s(&value, &length, name) != 0 || !value) return {};
+    std::string result(value);
+    std::free(value);
+    return result;
+#else
+    const char* value = std::getenv(name);
+    return value ? std::string(value) : std::string{};
+#endif
+}
+
 namespace {
 std::string display(const zumbi::ZsValue& value) {
     if (const auto p=std::get_if<std::string>(&value)) return *p;
@@ -82,8 +96,8 @@ int main(int argc, char** argv) {
         return 0;
     }
     if (argc == 2 && std::string(argv[1]) == "asset-public-key-env") {
-        const char* privateKey = std::getenv("ZBR_ASSET_SIGNING_PRIVATE_KEY");
-        if (!privateKey || !*privateKey) {
+        const std::string privateKey = environmentVariable("ZBR_ASSET_SIGNING_PRIVATE_KEY");
+        if (privateKey.empty()) {
             std::cerr << "ZBR_ASSET_SIGNING_PRIVATE_KEY is not set.\n";
             return 1;
         }
