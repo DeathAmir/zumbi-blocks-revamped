@@ -35,6 +35,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Player system ZS compile failed" }
           .\build\Release\zumbi_native.exe game-selftest
           if ($LASTEXITCODE -ne 0) { throw "Connected player and UI runtime tests failed" }
+          .\build\Release\zumbi_native.exe game-loop NativeEngine/scripts/player_system.zsc 10
+          if ($LASTEXITCODE -ne 0) { throw "Persistent ten-frame ZS runtime test failed" }
       - name: Test signed Zlib asset package
         shell: pwsh
         run: |
