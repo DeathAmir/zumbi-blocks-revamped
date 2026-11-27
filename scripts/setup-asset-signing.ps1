@@ -22,7 +22,7 @@ $privatePath = Join-Path $privateDirectory "asset-signing-private.hex"
 Set-Content -Path $privatePath -Value $privateKey -NoNewline -Encoding ascii
 icacls $privatePath /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
 if (Get-Command gh -ErrorAction SilentlyContinue) {
-    gh secret set ZBR_ASSET_SIGNING_PRIVATE_KEY --repo $repo --body $privateKey
+    $privateKey | gh secret set ZBR_ASSET_SIGNING_PRIVATE_KEY --repo $repo
     if ($LASTEXITCODE -eq 0) {
         Write-Host "GitHub Actions secret ZBR_ASSET_SIGNING_PRIVATE_KEY was created."
     } else {
