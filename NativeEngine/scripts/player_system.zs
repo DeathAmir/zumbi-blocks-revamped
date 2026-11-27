@@ -669,19 +669,19 @@ fn controls_init() {
 fn ui_manager_init() {
     ui.create("canvas", "canvas", "", 0, 0, 800, 600);
     ui.create("menu.0", "panel", "canvas", 0, -70, 400, 200);
-    ui.create("menu.0.play", "button", "menu.0", 0, 0, 360, 40);
+    ui.create("menu.0.play", "button", "menu.0", 0, 0, 396, 37.6);
     ui.text("menu.0.play", "Play");
     ui.action("menu.0.play", "Menu", 1);
-    ui.create("menu.0.character", "button", "menu.0", 0, -40, 360, 40);
+    ui.create("menu.0.character", "button", "menu.0", 0, -79.2, 396, 37.6);
     ui.text("menu.0.character", "Character");
     ui.action("menu.0.character", "Menu", 3);
-    ui.create("menu.0.options", "button", "menu.0", 0, -80, 360, 40);
+    ui.create("menu.0.options", "button", "menu.0", 0, 39.6, 396, 37.6);
     ui.text("menu.0.options", "Options");
     ui.action("menu.0.options", "Menu", 4);
-    ui.create("menu.0.quit", "button", "menu.0", 0, -120, 360, 40);
+    ui.create("menu.0.quit", "button", "menu.0", 0, -39.6, 396, 37.6);
     ui.text("menu.0.quit", "Quit");
     ui.action("menu.0.quit", "Quit", 1);
-    ui.create("menu.0.credits", "button", "menu.0", 0, -160, 360, 40);
+    ui.create("menu.0.credits", "button", "menu.0", 0, 79.2, 396, 37.6);
     ui.text("menu.0.credits", "Credits");
     ui.action("menu.0.credits", "Menu", 5);
 
@@ -708,13 +708,13 @@ fn ui_manager_init() {
     ui.action("menu.2.back", "Menu", 1);
 
     ui.create("menu.3", "panel", "canvas", 0, -49.934, 400, 200);
-    ui.create("menu.3.appearance", "button", "menu.3", 350, -50.666668, 696, 97.33333);
+    ui.create("menu.3.appearance", "button", "menu.3", 0, 0, 396, 64);
     ui.text("menu.3.appearance", "Appearance (coming soon)");
     ui.action("menu.3.appearance", "Menu", 0);
-    ui.create("menu.3.shop", "button", "menu.3", 350, -150, 696, 97.33333);
+    ui.create("menu.3.shop", "button", "menu.3", 0, -66, 396, 64);
     ui.text("menu.3.shop", "Shop (coming soon)");
     ui.action("menu.3.shop", "Menu", 0);
-    ui.create("menu.3.back", "button", "menu.3", 350, -250, 696, 97.33333);
+    ui.create("menu.3.back", "button", "menu.3", 0, 66, 396, 64);
     ui.text("menu.3.back", "Back");
     ui.action("menu.3.back", "Menu", 0);
 
