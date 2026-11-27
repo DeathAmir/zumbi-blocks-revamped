@@ -39,6 +39,7 @@ private:
     EventBus events_;
     std::unordered_map<Entity, std::unordered_map<std::string, ZsValue>> players_;
     std::unordered_map<std::string, ZsValue> input_;
+    std::unordered_map<std::string, ZsValue> state_;
     std::unordered_map<std::string, UiNodeState> ui_;
     std::mt19937 random_;
     bool gameActive_{true};
