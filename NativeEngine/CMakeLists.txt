@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(zumbi_native
     src/main.cpp
     src/engine_core.cpp
+    src/game_runtime.cpp
     src/asset_archive.cpp
     src/asset_package.cpp
     src/zs_compiler.cpp
