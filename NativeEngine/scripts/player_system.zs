@@ -42,6 +42,25 @@ fn Main() {
         player_hud_tick(id, time.delta());
         ui_manager_tick(time.delta());
     }
+    if (input.get("testMode")) {
+        test.expect(player.get(id, "movementState") == 2, "Player sprint state did not migrate");
+        test.expect(player.position(id, "z") > 0, "Player transform did not move through the runtime");
+        player_hurt(id, 25, 0);
+        test.expect(player.get(id, "health") == 75, "Armor-adjusted player damage mismatch");
+        player_heal(id, 10, false);
+        test.expect(player.get(id, "health") == 85, "Player healing mismatch");
+        player_give_stamina(id, 50);
+        test.expect(player.get(id, "stamina") == 100, "Stamina cap mismatch");
+        ui_menu(4);
+        test.expect(ui.get_visible("menu.4"), "UI menu selection did not activate the requested panel");
+        test.expect(!ui.get_visible("menu.0"), "UI menu selection did not hide the previous panel");
+        test.expect(ui.get_value("hud.health") == 85, "HUD health bar did not update");
+        ui_primary_message("Runtime test", 0.05);
+        ui_manager_tick(0.1);
+        test.expect(!ui.get_visible("center.primary"), "UI message timer did not close the message");
+        test.expect(!player.get(id, "dead"), "Player was unexpectedly marked dead");
+        log("Connected ZS player, movement and UI runtime tests OK");
+    }
 }
 
 fn player_stats_tick(id, dt) {
@@ -204,7 +223,7 @@ fn player_movement_tick(id, dt) {
     if (player.get(id, "dead")) { return; }
     let crouch = input.get("Crouch");
     let sprint = input.get("Sprint");
-    let jump = input.get("Jump");
+    let jump = input.consume("Jump");
     let x = 0;
     let z = 0;
     if (input.get("MoveRight")) { x = 1; }
@@ -219,7 +238,7 @@ fn player_movement_tick(id, dt) {
         rx = rx / length;
         rz = rz / length;
     }
-    let movement = 0;
+    let movement = player.get(id, "movementState");
     let speed = player.get(id, "currentSpeed");
     let height = player.get(id, "currentHeight");
     if (grounded) {
