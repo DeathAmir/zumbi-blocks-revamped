@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
         runtime.setInput("testMode", true);
         runtime.setInput("deltaTime", 0.1);
         std::string error;
-        if (!runtime.run("NativeEngine/tests/player_system.zsc", error)) {
+        if (!runtime.run("NativeEngine/scripts/player_system.zsc", error)) {
             std::cerr << "game runtime selftest failed: " << error << '\n';
             return 1;
         }
