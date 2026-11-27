@@ -155,7 +155,8 @@ fn player_hurt(id, damage, bleedChance) {
     }
     if (!player.get(id, "dummy")) {
         ui.alpha("hud.hurt", 1);
-        state.set("hud.hurt_timer", 1);
+        state.set("hud.hurt_timer", 0.5);
+        state.set("hud.hurt_power", damage / player.get(id, "maxHealth"));
         ui.value("hud.health", max_number(health, 0), player.get(id, "maxHealth"));
     }
     if (health <= 0) {
@@ -170,7 +171,8 @@ fn player_bleed(id) {
     player.set(id, "health", health);
     if (!player.get(id, "dummy")) {
         ui.alpha("hud.hurt", 1);
-        state.set("hud.hurt_timer", 1);
+        state.set("hud.hurt_timer", 0.5);
+        state.set("hud.hurt_power", player.get(id, "bleedingDamage") * 5 / player.get(id, "maxHealth"));
         ui.value("hud.health", max_number(health, 0), player.get(id, "maxHealth"));
     }
     if (health <= 0) {
@@ -363,7 +365,7 @@ fn ui_manager_init() {
     ui.create("menu.4.quality", "dropdown", "menu.4", 375, -156, 746, 60);
     ui.create("menu.4.controls", "button", "menu.4", 375, -333.5, 746, 55);
     ui.text("menu.4.controls", "Controls");
-    ui.action("menu.4.controls", "Menu", 9);
+    ui.action("menu.4.controls", "Menu", 10);
     ui.create("menu.4.save", "button", "menu.4", 375, -276.5, 746, 55);
     ui.text("menu.4.save", "Save options");
     ui.action("menu.4.save", "SaveOptions", 0);
@@ -376,7 +378,12 @@ fn ui_manager_init() {
     ui.text("menu.5.back", "Back");
     ui.action("menu.5.back", "Menu", 0);
 
+    ui.create("menu.6", "panel", "canvas", 0, 0, 700, 500);
+    ui.create("menu.7", "panel", "canvas", 0, 0, 700, 500);
+    ui.create("menu.8", "panel", "canvas", 0, 0, 700, 500);
+    ui.create("menu.9", "panel", "canvas", 0, 0, 700, 500);
     ui.create("menu.10", "scroll_panel", "canvas", 0, 0, 750, 550);
+    ui.create("title", "image", "canvas", 0, 220, 420, 120);
     ui.create("pause.menu", "panel", "canvas", 0, 0, 500, 300);
     ui.create("pause.resume", "button", "pause.menu", 250, -171.96066, 495.99994, 89.39928);
     ui.text("pause.resume", "Resume");
@@ -384,6 +391,11 @@ fn ui_manager_init() {
     ui.create("pause.main_menu", "button", "pause.menu", 250, -263.35992, 495.99994, 89.39928);
     ui.text("pause.main_menu", "Menu");
     ui.action("pause.main_menu", "SceneChanger", 0);
+    let panelIndex = 0;
+    while (panelIndex <= 10) {
+        ui.visible("menu." + panelIndex, false);
+        panelIndex = panelIndex + 1;
+    }
     ui.visible("menu.0", true);
     ui.visible("pause.menu", false);
     ui.visible("title", true);
@@ -435,6 +447,25 @@ fn ui_secondary_message(message, duration) {
 }
 
 fn ui_manager_tick(dt) {
+    if (input.consume("ui.clicked.menu.0.play")) { ui_menu(1); }
+    if (input.consume("ui.clicked.menu.0.character")) { ui_menu(3); }
+    if (input.consume("ui.clicked.menu.0.options")) { ui_menu(4); }
+    if (input.consume("ui.clicked.menu.0.credits")) { ui_menu(5); }
+    if (input.consume("ui.clicked.menu.1.back")) { ui_menu(0); }
+    if (input.consume("ui.clicked.menu.1.singleplayer")) { event.emit("scene.change", 0, 1); }
+    if (input.consume("ui.clicked.menu.1.multiplayer")) { ui_primary_message("Multiplayer is coming soon", 3); }
+    if (input.consume("ui.clicked.menu.2.back")) { ui_menu(1); }
+    if (input.consume("ui.clicked.menu.2.map1")) { event.emit("scene.change", 0, 1); }
+    if (input.consume("ui.clicked.menu.2.map2")) { event.emit("scene.change", 0, 2); }
+    if (input.consume("ui.clicked.menu.3.back")) { ui_menu(0); }
+    if (input.consume("ui.clicked.menu.3.appearance")) { ui_primary_message("Appearance is coming soon", 3); }
+    if (input.consume("ui.clicked.menu.3.shop")) { ui_primary_message("Shop is coming soon", 3); }
+    if (input.consume("ui.clicked.menu.4.back")) { ui_menu(0); }
+    if (input.consume("ui.clicked.menu.4.controls")) { ui_menu(10); }
+    if (input.consume("ui.clicked.menu.4.save")) { event.emit("options.save", 0, 0); ui_primary_message("Options saved", 2); }
+    if (input.consume("ui.clicked.menu.5.back")) { ui_menu(0); }
+    if (input.consume("ui.clicked.pause.resume")) { ui_close_menu(false); event.emit("game.resume", 0, 0); }
+    if (input.consume("ui.clicked.pause.main_menu")) { event.emit("scene.change", 0, 0); }
     let primary = state.get("ui.primary_timer");
     if (primary > 0) {
         primary = primary - dt;
@@ -471,6 +502,7 @@ fn hud_initialize() {
     ui.visible("hud.death_screen", false);
     ui.visible("hud.hurt", true);
     ui.alpha("hud.hurt", 0);
+    ui.alpha("hud.death_screen", 0.39215687);
     ui.visible("hud.stats_panel", true);
     ui.visible("hud.gun_panel", true);
     ui.visible("hud.center_crosshair", true);
@@ -491,7 +523,7 @@ fn player_hud_tick(id, dt) {
     if (hurt > 0) {
         hurt = hurt - dt;
         state.set("hud.hurt_timer", hurt);
-        ui.alpha("hud.hurt", max_number(hurt, 0));
+        ui.alpha("hud.hurt", max_number(hurt, 0) / 0.5 * state.get("hud.hurt_power"));
     }
     let hit = state.get("hud.hitmarker_timer");
     if (hit > 0) {
@@ -507,7 +539,7 @@ fn hud_weapon(name, ammo) {
 }
 
 fn hud_hitmarker(duration) {
-    if (duration <= 0) { duration = 1; }
+    if (duration <= 0) { duration = 0.5; }
     ui.visible("hud.hitmarker", true);
     state.set("hud.hitmarker_timer", duration);
 }
