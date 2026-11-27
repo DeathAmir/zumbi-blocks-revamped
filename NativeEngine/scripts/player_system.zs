@@ -703,7 +703,7 @@ fn ui_manager_init() {
     ui.create("menu.2.map2", "button", "menu.2", 0, -179.75, 696, 57.5);
     ui.text("menu.2.map2", "zb_alphatests");
     ui.action("menu.2.map2", "SceneChanger", 2);
-    ui.create("menu.2.back", "button", "menu.2", 0, -254.25, 696, 87.5);
+    ui.create("menu.2.back", "button", "menu.2", 0, -254.25, 0, 87.5);
     ui.text("menu.2.back", "Back");
     ui.action("menu.2.back", "Menu", 1);
 
@@ -745,10 +745,10 @@ fn ui_manager_init() {
     ui.text("menu.4.back", "Back");
     ui.action("menu.4.back", "Menu", 0);
 
-    ui.create("menu.5", "panel", "canvas", 0, 0, 400, 200);
-    ui.create("menu.5.credits", "text", "menu.5", 198, -69.53792, 396, 160);
+    ui.create("menu.5", "panel", "canvas", 0, -80, 400, 220);
+    ui.create("menu.5.credits", "text", "menu.5", 198, -69.53792, 392, 135.07584);
     ui.text("menu.5.credits", "\nDesign, code and idea by Leonardo \"Minhoca\"\nAll models, animations and art design by Pável \"Springy\"\n\nOriginal ZumbiBlocks by Adrian \"adrianks47\"\n\nThanks for playing!");
-    ui.create("menu.5.back", "button", "menu.5", 200, -177, 396, 40);
+    ui.create("menu.5.back", "button", "menu.5", 200, -177, 396, 82);
     ui.text("menu.5.back", "Back");
     ui.action("menu.5.back", "Menu", 0);
 
@@ -759,7 +759,9 @@ fn ui_manager_init() {
     ui.create("menu.10", "scroll_panel", "canvas", 0, 0, 750, 550);
     ui.create("title", "image", "canvas", 0, 220, 420, 120);
     ui.create("pause.menu", "panel", "canvas", 0, 0, 500, 300);
-    ui.create("pause.resume", "button", "pause.menu", 250, -171.96066, 495.99994, 89.39928);
+    ui.create("pause.title", "text", "pause.menu", 249.99997, -63.63051, 495.99994, 123.26102);
+    ui.text("pause.title", "Paused");
+    ui.create("pause.resume", "button", "pause.menu", 249.99997, -171.96066, 495.99994, 89.39928);
     ui.text("pause.resume", "Resume");
     ui.action("pause.resume", "UnPause", 0);
     ui.create("pause.main_menu", "button", "pause.menu", 250, -263.35992, 495.99994, 89.39928);
