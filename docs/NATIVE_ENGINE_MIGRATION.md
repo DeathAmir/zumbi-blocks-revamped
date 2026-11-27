@@ -2,48 +2,58 @@
 
 ## Current state
 
-This branch contains a C++20 native-engine bootstrap, an authenticated single-file asset primitive, a Zumbi Scripts compiler/VM, and CLI-hosted arrays, maps, and run-scoped state APIs. Four gameplay logic slices now have ZS prototypes and automated VM tests: player stats, player movement, enemy combat, and wave progression. This is a partial code migration; it does **not** yet replace the Unity game or convert the Unity scenes, prefabs, models, textures, animations, or audio.
+This branch contains a C++20 runtime foundation, a ZS compiler/VM, a native player/inventory/UI host API, a SHA-256/Zlib asset packer, and Ed25519 manifest signing.
 
-The source inventory and per-script status are tracked in [UNITY_SCRIPT_INVENTORY.md](UNITY_SCRIPT_INVENTORY.md). Prototype scripts are deliberately marked as logic-only until they are integrated with a live native entity, physics, input, UI, and asset runtime.
+The connected runtime currently supports persistent player entities, spawn points, player state, movement through a kinematic transform bridge, inventory slots and item records, input injection, retained UI nodes, menu navigation, key rebinding, options values, game events, and repeated ZS VM ticks. The Unity Player0 defaults and 39 default controls are represented in ZS. The source inventory is tracked in [UNITY_SCRIPT_INVENTORY.md](UNITY_SCRIPT_INVENTORY.md), and the current native UI layout reference is [ui_layout.json](../NativeEngine/ui/ui_layout.json).
 
-The source project is Unity 2020.1.14f1. Its gameplay code is coupled to Unity APIs including `MonoBehaviour`, `CharacterController`, `Physics`, `NavMeshAgent`, `Animator`, `AudioSource`, `ScriptableObject`, and Unity scene/prefab serialization.
+This is still a staged migration, not a complete Unity replacement. It does not yet have a native renderer or visible UI, a collision solver/CharacterController, a real desktop input backend, camera/head rig, navigation, animation, spatial audio, world item raycasts, gun/melee/usable item behavior, imported Unity scenes/prefabs, or multiplayer. The UI tree is retained runtime data and is not yet drawn on screen.
+
+The source project is Unity 2020.1.14f1 and its original gameplay uses `MonoBehaviour`, `CharacterController`, `Physics`, `NavMeshAgent`, `Animator`, `AudioSource`, `ScriptableObject`, and Unity scene/prefab serialization.
 
 ## Target architecture
 
 - **Native C++ engine:** window/device lifecycle, renderer, input, math, ECS/scene graph, resource streaming, physics, collision, navigation, audio, animation runtime, networking, and performance-critical simulation.
 - **Zumbi Scripts (ZS):** UI layouts and behavior, menus, HUD, event handlers, gameplay rules, configuration, and mod-facing logic.
-- **ZSC compiler:** parses ZS, validates it, lowers it to ZSA, and eventually emits compact ZSC bytecode.
-- **ZSA:** readable low-level assembly/debug representation with three-character per-build function symbols.
-- **ZSC:** planned compact bytecode module, with validated opcodes and compression.
-- **ZBP:** final encrypted bundle/container. The target main package is `ZBR Engine.zbp`; it will hold compiled ZSC modules, asset index/metadata, and encrypted asset chunks. ZSA listings can be included in development/debug packages.
+- **ZSC compiler/VM:** compiles ZS into binary VM bytecode. The native host registers game APIs for player, inventory, input, physics bridge, UI, options, events, and spawn management.
+- **ZSA:** readable stripped disassembly/debug listing. It is not the source language and is not currently a standalone assembler.
+- **ZSC:** binary VM module. The source-level function names are stripped and function symbols are randomized.
+- **ZBR Engine.zbp:** Windows CI creates a ZIP-based game package containing the native executable, runtime DLLs, content-addressed asset blobs, signed manifest, public verification key, and compiled player module when the signing secret is configured.
 
-The native engine exposes a versioned, capability-checked API to scripts. ZS never receives arbitrary native pointers or unrestricted C++ calls. UI rendering is submitted to the native UI subsystem; physics and authoritative simulation remain in C++.
+## ZS runtime interface
+
+The VM executes `Main()` once per tick. The same `NativeGameRuntime` instance retains entity state, input state, inventory, UI nodes, options and script state across calls. A native application can call `NativeGameRuntime::run(module, error)` each frame; the CLI `game-loop <module.zsc> <frames>` command exercises repeated ticks in CI.
+
+The current movement API is deliberately kinematic: the host updates transforms and receives grounded/ceiling input from an external adapter. It is not a collision solver. The retained UI API stores layout, text, values, visibility, actions and click state, but it is not a renderer.
+
+## Asset packaging and trust
+
+- Each source asset is SHA-256 hashed before compression.
+- Physical object names are `<sha256>.zba`; duplicate content is stored once.
+- Each object contains a Zlib stream with bounded original/compressed sizes.
+- The manifest maps original relative paths to SHA-256 object names and original sizes.
+- The manifest is signed using Ed25519. Runtime verification compares the package public key against a public key pinned into the executable at CMake configure time, verifies the signature, validates paths and bounds, decompresses objects, and recomputes SHA-256.
+- The private signing seed is never stored in the repository or shipped with the game. Run `scripts/setup-asset-signing.ps1` on the owner's Windows machine after building. It creates/reuses a 32-byte key under the user profile and provisions the GitHub Actions secret through authenticated GitHub CLI. The repository public-key file stays blank until setup; CI derives the public key from the secret and rebuilds the executable with that key pinned.
+- The signed content pack is not encrypted. Signing proves integrity/authenticity; Zlib is compression, not encryption. The separate AES-256-GCM single-file archive command is a different feature and is not the ZBR content pack format.
 
 ## Migration order
 
-1. Inventory and export every source asset and record GUID/reference relationships.
-2. Implement native runtime foundations: window/rendering, input, math, scene graph, resource loading, physics, audio, animation, navigation, and UI.
-3. Expand ZS/ZSA/ZSC: nested data collections and run-scoped state are prototyped; next add modules/imports, events, coroutines, typed capability-checked native bindings, validation, and compression hardening.
-4. Port player movement/stats/inventory and combat.
-5. Port enemy AI, navigation, ragdolls, spawning, waves, and loot.
-6. Rebuild menu, HUD, settings, save/configuration, and scene flow in ZS over native UI.
-7. Convert and validate every asset; retain source provenance and licenses.
-8. Add multiplayer only after authoritative gameplay simulation and replication are implemented and tested.
-
-## Encrypted asset file
-
-The archive primitive uses AES-256-GCM. On Windows it uses the built-in CNG/BCrypt API, so the Windows build does not need OpenSSL, vcpkg, or an extra crypto DLL. Non-Windows builds currently use OpenSSL. Authentication is verified before decrypted bytes are written. This is currently a single-file archive primitive, not yet the final multi-entry ZBP package format or a key-management system.
-
-Never commit production encryption keys. A key embedded in a distributed client can be extracted; encryption is not a substitute for anti-tamper security.
+1. Complete the native player manager, loadout, camera, item interaction, and UI event/input integration.
+2. Implement a native renderer and retained-UI drawing/input backend, then validate the menu/HUD against the original prefabs.
+3. Implement collision/character-controller physics and connect grounded, ceiling, movement, and camera transforms.
+4. Port firearms, melee, usable items, zombie AI, navigation, loot and wave orchestration.
+5. Import and validate scenes, prefabs, models, textures, audio and GUID/reference relationships.
+6. Add save/configuration persistence and multiplayer only after authoritative simulation and replication are implemented and tested.
 
 ## Build
 
-Windows: CMake 3.20+ and Visual Studio 2022/MSVC; crypto uses the Windows SDK BCrypt library.
+Windows: CMake 3.20+, Visual Studio 2022/MSVC, vcpkg packages for OpenSSL and zlib.
 
-Linux: CMake 3.20+, a C++20 compiler, and OpenSSL development libraries.
+Linux: CMake 3.20+, a C++20 compiler, OpenSSL and zlib development packages.
 
 ```sh
-cmake -S NativeEngine -B build
-cmake --build build --config Release
-./build/zumbi_native compile samples/ui/main.zs main.zsa
+cmake -S NativeEngine -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+./build/zumbi_native compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
+./build/zumbi_native game-selftest
+./build/zumbi_native game-loop NativeEngine/scripts/player_system.zsc 10
 ```
