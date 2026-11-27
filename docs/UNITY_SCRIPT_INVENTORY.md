@@ -14,7 +14,7 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 | Controllers/MouseController.cs | Mouse look and weapon aim | Pending |
 | Controllers/SpectatorMovement.cs | Spectator camera movement | Pending |
 | ControlsCollection.cs | Control presets | ZS defaults and 39-entry control map |
-| ControlsManager.cs | Bindings and input configuration | ZS rebinding UI and native input adapter |
+| ControlsManager.cs | Bindings and input configuration | ZS runtime port (39 defaults and rebind capture); OS input adapter pending |
 | Destructible.cs | Damageable world objects | Pending |
 | EnemyInventory.cs | Zombie equipment and item use | Pending |
 | EnemySpawn.cs | Spawn point behavior | Pending |
@@ -36,15 +36,15 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 | OptionsManager.cs | Settings persistence and application | Pending |
 | PhysicMaterialCollection.cs | Physics material lookup | Pending |
 | PlayerHUD.cs | Player HUD and feedback | ZS retained-UI logic port |
-| PlayerInventory.cs | Inventory slots, pickup, drop, equipment | ZS runtime port (9 slots, stacking, ammo and drop) |
-| PlayerManager.cs | Player lifecycle and player list | Pending |
+| PlayerInventory.cs | Inventory slots, pickup, drop, equipment | ZS runtime port (9 slots, selection, pickup, stacking, ammo and drop state); camera/physics presentation pending |
+| PlayerManager.cs | Player lifecycle and player list | Native runtime player registry, spawn selection and death tally; prefab/loadout integration pending |
 | PlayerMovement.cs | Movement, sprint, crouch, jump and falling | ZS runtime port (kinematic host bridge) |
-| PlayerSpawn.cs | Player spawn configuration | Pending |
+| PlayerSpawn.cs | Player spawn configuration | Native runtime spawn-point transforms; scene spawn-point import pending |
 | PlayerStats.cs | Health, armor, stamina, noise, bleeding and death | ZS runtime port (Player0 defaults) |
 | ScriptableObjectManager.cs | Shared data registry | Pending |
 | Sound.cs | Sound data | Pending |
 | TestMusicPlayer.cs | Test music playback | Pending |
-| UIManager.cs | Menus, panels, messages and scene UI | ZS retained-UI logic port |
+| UIManager.cs | Menus, panels, messages and scene UI | ZS logic port (menus, credits, controls, options, pause, messages, stopwatch); renderer pending |
 | UsableItem.cs | Healing, consumables and usable equipment | Pending |
 | WaveSpawner.cs | Wave timing, selection and spawn orchestration | Logic prototype |
 | ZombieTextureCollection.cs | Zombie texture lookup | Pending |
@@ -60,7 +60,9 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 - `NativeEngine/tests/player_movement.zs`: sprint/crouch speed selection and jump velocity.
 - `NativeEngine/tests/wave_director.zs`: kill threshold, wave completion, wave numbering and countdown.
 
-The PlayerStats, PlayerMovement, PlayerHUD and UIManager logic now runs through the connected NativeGameRuntime host API. The Player0 prefab defaults are copied into the ZS player initialization. The runtime exposes entity state, transform movement, input state, game delta, retained UI nodes, audio/particle events and player-death events. The current physics bridge is kinematic and has no collision solver, renderer, animation backend, or real OS input adapter yet; the UI tree is retained data, not a drawn window. The source C# components remain as behavioral references until full scene and interaction parity is verified.
+PlayerStats, PlayerMovement, PlayerInventory, PlayerHUD, ControlsManager, PlayerManager, PlayerSpawn and UIManager now have partial ZS/native-runtime ports. The Player0 defaults and 39 default control bindings are represented in ZS. NativeGameRuntime owns persistent player entities, inventory/item records, spawn-point transforms, input injection, options state, retained UI nodes, event dispatch and per-frame ZS execution. Automated runtime tests cover movement, damage/healing/stamina, inventory pickup/stacking/ammo/drop, menu navigation, key rebinding and options values.
+
+This is not yet full visual or physical parity with Unity. The physics bridge is kinematic and still lacks a collision solver, CharacterController capsule, camera/head rig and actual OS input adapter. The retained UI tree is not yet drawn by a renderer. World item raycasts, weapon/melee/usable-item behaviors, item prefab presentation, PlayerManager loadout cloning, imported scene spawn points, spatial audio playback and animation remain pending. The source C# components remain as behavioral references until full scene and interaction parity is verified.
 
 ## Required next integrations
 
