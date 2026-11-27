@@ -76,7 +76,7 @@ fn Main() {
         inventory_pickup(id, rifle);
         test.expect(inventory.get(id, 1) == rifle, "Primary weapon slot did not receive the rifle");
         test.expect(inventory.has_gun(id), "Inventory gun tracking failed");
-        test.expect(!item.get(rifle, "active"), "Picked up weapon was not deactivated in world");
+        test.expect(item.get(rifle, "active") && item.get(rifle, "equipped") && !item.get(rifle, "physicsEnabled"), "Picked up weapon was not equipped and detached from world physics");
         let stackA = item.create(2, 200, 3, false, 0, 0, 0, "Grenade", "pickup.grenade");
         inventory_pickup(id, stackA);
         let stackB = item.create(2, 200, 2, false, 0, 0, 0, "Grenade", "pickup.grenade");
