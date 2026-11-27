@@ -74,6 +74,9 @@ private:
     EventBus events_;
     std::unordered_map<Entity, std::unordered_map<std::string, ZsValue>> players_;
     std::unordered_map<Entity, InventoryRuntimeState> inventories_;
+    std::vector<Entity> playerOrder_;
+    std::vector<Transform> spawnPoints_;
+    std::size_t deadPlayers_{};
     std::unordered_map<std::uint32_t, ItemRuntimeState> items_;
     std::uint32_t nextItemId_{1};
     std::unordered_map<std::string, ZsValue> input_;
