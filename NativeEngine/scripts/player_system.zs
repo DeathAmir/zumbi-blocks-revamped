@@ -102,15 +102,24 @@ fn Main() {
         test.expect(options.get("volume") == 0.5, "Volume slider did not update native options");
         test.expect(options.get("quality") == 3, "Graphics quality dropdown did not update native options");
         test.expect(options.get("fullscreen") == 1, "Fullscreen toggle did not update native options");
+        ui.click("menu.4.save");
+        ui_manager_tick(0.016);
+        test.expect(options.get("saved"), "Save options action did not persist its runtime state");
         ui.click("menu.4.controls");
         ui_manager_tick(0.016);
         test.expect(ui.get_visible("menu.10"), "Controls button did not open Controls menu");
         ui.click("controls.bind.Sprint");
         ui_manager_tick(0.016);
         test.expect(state.get("controls.binding") == "Sprint", "Control rebinding did not enter capture mode");
+        ui.change_value("controls.sensitivity", 10);
+        ui_manager_tick(0.016);
+        test.expect(state.get("controls.mouseSensitivity") == 10, "Mouse sensitivity slider did not update controls");
         input.set("lastKey", "RightShift");
         ui_manager_tick(0.016);
         test.expect(controls.get("Sprint") == "RightShift", "Control rebinding did not save the captured key");
+        ui.click("controls.reset");
+        ui_manager_tick(0.016);
+        test.expect(controls.get("Sprint") == "LeftShift", "Reset controls did not restore the default binding");
         ui.click("controls.back");
         ui_manager_tick(0.016);
         test.expect(ui.get_visible("menu.4"), "Controls Back button did not return to Options");
@@ -855,8 +864,8 @@ fn ui_manager_tick(dt) {
     if (input.consume("ui.clicked.menu.2.map1")) { event.emit("scene.change", 0, 1); }
     if (input.consume("ui.clicked.menu.2.map2")) { event.emit("scene.change", 0, 2); }
     if (input.consume("ui.clicked.menu.3.back")) { ui_menu(0); }
-    if (input.consume("ui.clicked.menu.3.appearance")) { ui_primary_message("Appearance is coming soon", 3); }
-    if (input.consume("ui.clicked.menu.3.shop")) { ui_primary_message("Shop is coming soon", 3); }
+    if (input.consume("ui.clicked.menu.3.appearance")) { ui_menu(0); }
+    if (input.consume("ui.clicked.menu.3.shop")) { ui_menu(0); }
     if (input.consume("ui.clicked.menu.4.back")) { ui_menu(0); }
     if (input.consume("ui.clicked.menu.4.fullscreen")) { event.emit("options.fullscreen.toggle", 0, 0); }
     if (input.consume("ui.clicked.menu.4.resolution")) { event.emit("options.resolution.open", 0, 0); }
@@ -870,7 +879,7 @@ fn ui_manager_tick(dt) {
     }
     if (input.consume("ui.changed.controls.sensitivity")) { state.set("controls.mouseSensitivity", ui.get_value("controls.sensitivity")); }
     if (input.consume("ui.clicked.menu.4.controls")) { ui_menu(10); }
-    if (input.consume("ui.clicked.menu.4.save")) { event.emit("options.save", 0, 0); ui_primary_message("Options saved", 2); }
+    if (input.consume("ui.clicked.menu.4.save")) { options.set("saved", true); event.emit("options.save", 0, 0); ui_primary_message("Options saved", 2); }
     if (input.consume("ui.clicked.menu.5.back")) { ui_menu(0); }
     if (input.consume("ui.clicked.pause.resume")) { ui_close_menu(false); event.emit("game.resume", 0, 0); }
     if (input.consume("ui.clicked.pause.main_menu")) { event.emit("scene.change", 0, 0); }
