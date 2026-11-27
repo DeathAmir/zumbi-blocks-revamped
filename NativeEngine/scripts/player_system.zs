@@ -81,6 +81,7 @@ fn Main() {
         test.expect(ui.get_visible("menu.4"), "UI menu selection did not activate the requested panel");
         test.expect(!ui.get_visible("menu.0"), "UI menu selection did not hide the previous panel");
         test.expect(ui.get_value("hud.health") == 85, "HUD health bar did not update");
+        ui_menu(0);
         ui.click("menu.0.play");
         ui_manager_tick(0.016);
         test.expect(ui.get_visible("menu.1"), "Main menu Play button did not open Play menu");
@@ -713,7 +714,7 @@ fn ui_manager_init() {
 
     ui.create("menu.5", "panel", "canvas", 0, 0, 400, 200);
     ui.create("menu.5.credits", "text", "menu.5", 198, -69.53792, 396, 160);
-    ui.text("menu.5.credits", "\\nDesign, code and idea by Leonardo \\"Minhoca\\"\\nAll models, animations and art design by Pável \\"Springy\\"\\n\\nOriginal ZumbiBlocks by Adrian \\"adrianks47\\"\\n\\nThanks for playing!");
+    ui.text("menu.5.credits", "\nDesign, code and idea by Leonardo \"Minhoca\"\nAll models, animations and art design by Pável \"Springy\"\n\nOriginal ZumbiBlocks by Adrian \"adrianks47\"\n\nThanks for playing!");
     ui.create("menu.5.back", "button", "menu.5", 200, -177, 396, 40);
     ui.text("menu.5.back", "Back");
     ui.action("menu.5.back", "Menu", 0);
