@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 
 namespace zumbi {
 namespace {
@@ -13,7 +15,7 @@ bool truthy(const ZsValue& value) {
 }
 std::string valueText(const ZsValue& value) {
     if(const auto p=std::get_if<std::string>(&value)) return *p;
-    if(const auto p=std::get_if<double>(&value)) return std::to_string(*p);
+    if(const auto p=std::get_if<double>(&value)) { std::ostringstream out; out<<*p; return out.str(); }
     if(const auto p=std::get_if<bool>(&value)) return *p?"true":"false";
     return "null";
 }
@@ -276,6 +278,15 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         const auto* t=world_.getTransform(id); if(!t) return std::monostate{};
         if(axis=="x") return t->position.x; if(axis=="y") return t->position.y; if(axis=="z") return t->position.z;
         return std::monostate{};
+    }
+    if(name=="format.integer"&&args.size()==1) {
+        double value{}; if(!n(0,value)) return std::string{};
+        return std::to_string(static_cast<long long>(value));
+    }
+    if(name=="format.fixed"&&args.size()==2) {
+        double value{},precision{};
+        if(!n(0,value)||!n(1,precision)||precision<0||precision>6) return std::string{};
+        std::ostringstream out; out<<std::fixed<<std::setprecision(static_cast<int>(precision))<<value; return out.str();
     }
     if(name=="math.sqrt"&&args.size()==1) { double v{}; return n(0,v)&&v>=0?ZsValue(std::sqrt(v)):ZsValue(0.0); }
     if(name=="math.sin"&&args.size()==1) { double v{}; return n(0,v)?ZsValue(std::sin(v)):ZsValue(0.0); }
