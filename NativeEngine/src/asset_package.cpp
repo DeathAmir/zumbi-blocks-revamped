@@ -60,7 +60,9 @@ bool writeFile(const std::filesystem::path& path,const Bytes& data) {
 std::string hashBytes(const Bytes& data) {
     std::array<unsigned char,32> digest{};
     unsigned int length=0;
-    if(EVP_Digest(data.data(),data.size(),digest.data(),&length,EVP_sha256(),nullptr)!=1||length!=digest.size()) return {};
+    static unsigned char empty=0;
+    const auto* source=data.empty()?&empty:data.data();
+    if(EVP_Digest(source,data.size(),digest.data(),&length,EVP_sha256(),nullptr)!=1||length!=digest.size()) return {};
     return encodeHex(digest.data(),digest.size());
 }
 std::string hexPath(const std::string& path) {
@@ -126,7 +128,9 @@ bool verifyManifest(const std::string& manifest,const Bytes& signature,const std
 bool compressAsset(const Bytes& input,Bytes& output) {
     uLongf bound=compressBound(static_cast<uLong>(input.size()));
     output.resize(static_cast<std::size_t>(bound));
-    const int result=compress2(output.data(),&bound,input.data(),static_cast<uLong>(input.size()),Z_BEST_COMPRESSION);
+    static unsigned char empty=0;
+    const auto* source=input.empty()?&empty:input.data();
+    const int result=compress2(output.data(),&bound,source,static_cast<uLong>(input.size()),Z_BEST_COMPRESSION);
     if(result!=Z_OK) return false;
     output.resize(static_cast<std::size_t>(bound));
     return true;
