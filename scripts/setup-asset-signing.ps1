@@ -19,7 +19,7 @@ if (Test-Path $privatePath) {
     $bytes = New-Object byte[] 32
     $rng.GetBytes($bytes)
     $rng.Dispose()
-    $privateKey = [Convert]::ToHexString($bytes).ToLowerInvariant()
+    $privateKey = [BitConverter]::ToString($bytes).Replace("-", "").ToLowerInvariant()
     Set-Content -Path $privatePath -Value $privateKey -NoNewline -Encoding ascii
 }
 icacls $privatePath /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
