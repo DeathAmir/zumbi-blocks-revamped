@@ -39,6 +39,7 @@ NativeGameRuntime::NativeGameRuntime() : random_(0x5a42524u) {
     state_["options.fullscreen"]=0.0;
     state_["options.resolution"]=0.0;
     state_["options.quality"]=2.0;
+    state_["options.mouseSensitivity"]=6.0;
     events_.subscribe("game.pause",[this](const EngineEvent&){gameActive_=false;state_["game.paused"]=true;});
     events_.subscribe("game.resume",[this](const EngineEvent&){gameActive_=true;state_["game.paused"]=false;});
     events_.subscribe("game.quit",[this](const EngineEvent&){state_["game.quit"]=true;});
