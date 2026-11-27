@@ -30,10 +30,24 @@ if ($LASTEXITCODE -ne 0 -or $publicKey -notmatch '^[0-9a-f]{64}$') {
 }
 Set-Content -Path $keyFile -Value $publicKey -NoNewline -Encoding ascii
 if (Get-Command gh -ErrorAction SilentlyContinue) {
-    $privateKey | gh secret set ZBR_ASSET_SIGNING_PRIVATE_KEY --repo $repo
-    if ($LASTEXITCODE -ne 0) {
-        throw "GitHub CLI could not create/update the Actions secret. Check gh auth status and repository access."
+    $start = New-Object System.Diagnostics.ProcessStartInfo
+    $start.FileName = (Get-Command gh).Source
+    $start.Arguments = "secret set ZBR_ASSET_SIGNING_PRIVATE_KEY --repo $repo"
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $process = [System.Diagnostics.Process]::Start($start)
+    $process.StandardInput.Write($privateKey)
+    $process.StandardInput.Close()
+    $output = $process.StandardOutput.ReadToEnd()
+    $errorText = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) {
+        throw "GitHub CLI could not create/update the Actions secret. $errorText"
     }
+    if ($output) { Write-Host $output.Trim() }
     Write-Host "GitHub Actions secret ZBR_ASSET_SIGNING_PRIVATE_KEY was created or updated."
 } else {
     Write-Warning "GitHub CLI is not installed. Install/authenticate gh, then run:"
