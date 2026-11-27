@@ -15,7 +15,7 @@ add_executable(zumbi_native
 )
 target_include_directories(zumbi_native PRIVATE include)
 
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(ZLIB REQUIRED)
 target_link_libraries(zumbi_native PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
 
