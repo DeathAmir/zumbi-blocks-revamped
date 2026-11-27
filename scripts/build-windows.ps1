@@ -18,13 +18,15 @@ try {
     $opensslHeader = Get-ChildItem build/prebuilt/openssl -Recurse -File -Filter evp.h | Where-Object { $_.FullName -match '[\\/]include[\\/]openssl[\\/]evp.h$' } | Select-Object -First 1
     $opensslLibrary = Get-ChildItem build/prebuilt/openssl -Recurse -File -Filter libcrypto.lib | Where-Object { $_.FullName -match '[\\/]lib[\\/]win-x64[\\/]native[\\/]' } | Select-Object -First 1
     $zlibHeader = Get-ChildItem build/prebuilt/zlib -Recurse -File -Filter zlib.h | Select-Object -First 1
-    $zlibLibrary = Get-ChildItem build/prebuilt/zlib -Recurse -File -Filter *.lib | Where-Object { $_.Name -match 'zlib' } | Select-Object -First 1
+    $zlibLibrary = Get-ChildItem build/prebuilt/zlib -Recurse -File -Filter *.lib | Where-Object { $_.Name -match 'zlib' -and $_.FullName -notmatch '[\\/]lib_debug[\\/]' } | Select-Object -First 1
     if (!$opensslHeader -or !$opensslLibrary -or !$zlibHeader -or !$zlibLibrary) {
         throw "Precompiled OpenSSL or zlib headers/libraries are missing."
     }
     $opensslDllDir = Join-Path $root "build/prebuilt/openssl/runtimes/win-x64/native"
     if (!(Test-Path $opensslDllDir)) { throw "OpenSSL x64 runtime DLL directory is missing." }
-    cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DOPENSSL_INCLUDE_DIR="$($opensslHeader.Directory.Parent.FullName)" -DOPENSSL_CRYPTO_LIBRARY="$($opensslLibrary.FullName)" -DZLIB_INCLUDE_DIR="$($zlibHeader.DirectoryName)" -DZLIB_LIBRARY_RELEASE="$($zlibLibrary.FullName)" -DZLIB_LIBRARY="$($zlibLibrary.FullName)"
+    $opensslCryptoDll = Get-ChildItem $opensslDllDir -Filter libcrypto-3-x64.dll | Select-Object -First 1
+    if (!$opensslCryptoDll) { throw "Precompiled OpenSSL crypto DLL is missing." }
+    cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DOPENSSL_INCLUDE_DIR="$($opensslHeader.Directory.Parent.FullName)" -DOPENSSL_CRYPTO_LIBRARY="$($opensslLibrary.FullName)" -DOPENSSL_CRYPTO_DLL="$($opensslCryptoDll.FullName)" -DZLIB_INCLUDE_DIR="$($zlibHeader.DirectoryName)" -DZLIB_LIBRARY_RELEASE="$($zlibLibrary.FullName)" -DZLIB_LIBRARY="$($zlibLibrary.FullName)"
     if ($LASTEXITCODE -ne 0) { throw "CMake configure failed." }
     cmake --build build --config Release --parallel
     if ($LASTEXITCODE -ne 0) { throw "Native engine build failed." }
