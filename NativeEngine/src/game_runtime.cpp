@@ -4,6 +4,9 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
+#include <filesystem>
+#include <cstdlib>
 
 namespace zumbi {
 namespace {
@@ -33,7 +36,7 @@ NativeGameRuntime::NativeGameRuntime() : random_(0x5a42524u) {
     input_["grounded"]=true;
     input_["ceiling"]=false;
     state_["options.volume"]=1.0;
-    state_["options.fullscreen"]=false;
+    state_["options.fullscreen"]=0.0;
     state_["options.resolution"]=0.0;
     state_["options.quality"]=2.0;
     events_.subscribe("game.pause",[this](const EngineEvent&){gameActive_=false;state_["game.paused"]=true;});
@@ -46,13 +49,18 @@ NativeGameRuntime::NativeGameRuntime() : random_(0x5a42524u) {
     });
     events_.subscribe("options.fullscreen.toggle",[this](const EngineEvent&){
         const auto it=state_.find("options.fullscreen");
-        const bool current=it!=state_.end()&&truthy(it->second);
-        state_["options.fullscreen"]=!current;
+        const double current=it!=state_.end()&&truthy(it->second)?1.0:0.0;
+        state_["options.fullscreen"]=current==0.0?1.0:0.0;
     });
     events_.subscribe("options.fullscreen.set",[this](const EngineEvent& event){
-        if(!event.values.empty()) state_["options.fullscreen"]=event.values[0]!=0.0;
+        if(!event.values.empty()) state_["options.fullscreen"]=event.values[0]!=0.0?1.0:0.0;
     });
-    events_.subscribe("options.save",[this](const EngineEvent&){state_["options.saved"]=true;});
+    events_.subscribe("options.save",[this](const EngineEvent&){
+        std::string error;
+        if(saveOptions(error)) state_["options.saved"]=true;
+        else { state_["options.saved"]=false; state_["options.error"]=error; }
+    });
+    loadOptions();
     events_.subscribe("player.death",[this](const EngineEvent&){});
 }
 void NativeGameRuntime::setInput(const std::string& name,ZsValue value) { input_[name]=std::move(value); }
@@ -66,6 +74,64 @@ std::size_t NativeGameRuntime::eventCount() const { return events_.pending(); }
 bool NativeGameRuntime::failed() const { return failed_; }
 const std::string& NativeGameRuntime::failure() const { return failure_; }
 void NativeGameRuntime::fail(const std::string& message) { failed_=true; failure_=message; }
+std::string NativeGameRuntime::settingsPath() const {
+    const char* configured=std::getenv("ZBR_SETTINGS_PATH");
+    if(configured&&*configured) return configured;
+    return (std::filesystem::current_path()/"Game"/"Config"/"settings.ini").string();
+}
+void NativeGameRuntime::loadOptions() {
+    std::ifstream file(settingsPath());
+    if(!file) return;
+    std::string line;
+    while(std::getline(file,line)) {
+        const auto separator=line.find('=');
+        if(separator==std::string::npos) continue;
+        const auto key=line.substr(0,separator);
+        if(key!="volume"&&key!="fullscreen"&&key!="resolution"&&key!="quality"&&key!="mouseSensitivity") continue;
+        try {
+            std::size_t consumed=0;
+            double value=std::stod(line.substr(separator+1),&consumed);
+            if(consumed!=line.size()-separator-1||!std::isfinite(value)) continue;
+            if(key=="volume") value=std::clamp(value,0.0,1.0);
+            else if(key=="fullscreen") value=value!=0.0?1.0:0.0;
+            else if(key=="resolution") value=std::clamp(value,0.0,10.0);
+            else if(key=="quality") value=std::clamp(value,0.0,3.0);
+            else if(key=="mouseSensitivity") value=std::clamp(value,1.0,20.0);
+            state_["options."+key]=value;
+        } catch(...) {}
+    }
+}
+bool NativeGameRuntime::saveOptions(std::string& error) const {
+    const std::filesystem::path path(settingsPath());
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(),ec);
+    if(ec) { error="Could not create options directory: "+ec.message(); return false; }
+    auto temporary=path;
+    temporary += ".tmp";
+    std::ofstream file(temporary,std::ios::binary|std::ios::trunc);
+    if(!file) { error="Could not open options file for writing."; return false; }
+    const std::vector<std::string> keys={"volume","fullscreen","resolution","quality","mouseSensitivity"};
+    for(const auto& key:keys) {
+        const auto found=state_.find("options."+key);
+        if(found==state_.end()) continue;
+        double value=0.0;
+        if(const auto number=std::get_if<double>(&found->second)) value=*number;
+        else if(const auto boolean=std::get_if<bool>(&found->second)) value=*boolean?1.0:0.0;
+        else continue;
+        file<<key<<'='<<std::setprecision(17)<<value<<'\\n';
+    }
+    file.flush();
+    if(!file) { error="Could not flush options file."; file.close(); std::filesystem::remove(temporary,ec); return false; }
+    file.close();
+    std::filesystem::rename(temporary,path,ec);
+    if(ec) {
+        std::filesystem::remove(path,ec);
+        ec.clear();
+        std::filesystem::rename(temporary,path,ec);
+    }
+    if(ec) { error="Could not replace options file: "+ec.message(); std::filesystem::remove(temporary,ec); return false; }
+    return true;
+}
 bool NativeGameRuntime::number(const std::vector<ZsValue>& args,std::size_t i,double& value) const {
     if(i>=args.size()) return false;
     if(const auto p=std::get_if<double>(&args[i])) { value=*p; return std::isfinite(value); }
@@ -363,7 +429,23 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     }
     if(name=="options.set"&&args.size()==2) {
         std::string key; if(!s(0,key)||key.empty()) return false;
-        state_["options."+key]=args[1]; return true;
+        if(const auto value=std::get_if<double>(&args[1])) {
+            double adjusted=*value;
+            if(key=="volume") adjusted=std::clamp(adjusted,0.0,1.0);
+            else if(key=="fullscreen") adjusted=adjusted!=0.0?1.0:0.0;
+            else if(key=="resolution") adjusted=std::clamp(adjusted,0.0,10.0);
+            else if(key=="quality") adjusted=std::clamp(adjusted,0.0,3.0);
+            else if(key=="mouseSensitivity") adjusted=std::clamp(adjusted,1.0,20.0);
+            state_["options."+key]=adjusted;
+        } else state_["options."+key]=args[1];
+        return true;
+    }
+    if(name=="options.save"&&args.empty()) {
+        std::string error;
+        const bool saved=saveOptions(error);
+        state_["options.saved"]=saved;
+        if(!saved) state_["options.error"]=error;
+        return saved;
     }
     if(name=="game.active"&&args.empty()) return gameActive_;
     if(name=="time.delta"&&args.empty()) {
