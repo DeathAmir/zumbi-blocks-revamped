@@ -110,8 +110,8 @@ int main(int argc, char** argv) {
         return 0;
     }
     if (argc == 4 && std::string(argv[1]) == "asset-pack") {
-        const char* privateKey = std::getenv("ZBR_ASSET_SIGNING_PRIVATE_KEY");
-        if (!privateKey || !*privateKey) {
+        const std::string privateKey = environmentVariable("ZBR_ASSET_SIGNING_PRIVATE_KEY");
+        if (privateKey.empty()) {
             std::cerr << "ZBR_ASSET_SIGNING_PRIVATE_KEY is not set.\n";
             return 1;
         }
