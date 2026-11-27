@@ -39,6 +39,19 @@ fn Main() {
         player.set(newPlayerId, "bleedingRate", 0.5);
         player.set(newPlayerId, "crouchHeightPercentage", 50);
         inventory.init(newPlayerId, 1, 2, 3);
+        state.set("inventory.interactionReach", 4);
+        state.set("inventory.swayAmount", 0.01);
+        state.set("inventory.swayRotationAmount", 1);
+        state.set("inventory.swaySpeed", 5);
+        state.set("inventory.swayMaxAmount", 0.1);
+        state.set("inventory.swaySmoothness", 8);
+        state.set("inventory.dropForceX", 0);
+        state.set("inventory.dropForceY", 0);
+        state.set("inventory.dropForceZ", 2);
+        state.set("inventory.dropSpinX", 10);
+        state.set("inventory.dropSpinY", 10);
+        state.set("inventory.dropSpinZ", 10);
+        state.set("inventory.randomDropSpin", false);
         let defaultItem = item.create(1, 0, 1, false, 0, 0, 0, "Default Melee", "");
         state.set("inventory.default." + newPlayerId, defaultItem);
         inventory_select_item(newPlayerId);
@@ -104,8 +117,11 @@ fn inventory_select_item(id) {
     while (i <= 9) {
         let itemId = inventory.get(id, i);
         if (itemId > 0) {
+            let wasEquipped = item.get(itemId, "equipped");
             item.set(itemId, "equipped", itemId == selectedItem);
             item.set(itemId, "active", itemId == selectedItem);
+            if (itemId == selectedItem && !wasEquipped) { event.emit("item.equipped", id, itemId); }
+            if (itemId != selectedItem && wasEquipped) { event.emit("item.unequipped", id, itemId); }
         }
         i = i + 1;
     }
@@ -199,6 +215,7 @@ fn inventory_pickup(id, picked) {
             }
         }
     }
+    if (kind < 0 || kind > 5) { item.destroy(picked); }
     if (kind == 5 && inventory.has_gun(id)) {
         let ammoTarget = 0;
         let selected = inventory.get(id, inventory.selected(id));
