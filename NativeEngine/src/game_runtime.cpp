@@ -95,9 +95,13 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         if(name=="player.get") { const auto it=p.find(key); return it==p.end()?ZsValue(std::monostate{}):it->second; }
         p[key]=args[2]; return args[2];
     }
-    if(name=="input.get"&&args.size()==1) {
+    if((name=="input.get"||name=="input.consume")&&args.size()==1) {
         std::string key; if(!s(0,key)) return false;
-        const auto it=input_.find(key); return it==input_.end()?ZsValue(false):it->second;
+        const auto it=input_.find(key);
+        if(it==input_.end()) return false;
+        const ZsValue value=it->second;
+        if(name=="input.consume") it->second=false;
+        return value;
     }
     if(name=="game.active"&&args.empty()) return gameActive_;
     if(name=="time.delta"&&args.empty()) {
