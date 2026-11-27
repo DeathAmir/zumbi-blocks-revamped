@@ -32,6 +32,25 @@ int main(int argc, char** argv) {
         std::cout << "ZS gameplay module executed in native engine runtime\n";
         return 0;
     }
+    if (argc == 4 && std::string(argv[1]) == "game-loop") {
+        char* end = nullptr;
+        const auto frames = std::strtoul(argv[3], &end, 10);
+        if (!end || *end != '\0' || frames == 0 || frames > 1000000) {
+            std::cerr << "game-loop frame count must be between 1 and 1000000\n";
+            return 2;
+        }
+        zumbi::NativeGameRuntime runtime;
+        std::string error;
+        for (unsigned long frame = 0; frame < frames; ++frame) {
+            runtime.setInput("deltaTime", 1.0 / 60.0);
+            if (!runtime.run(argv[2], error)) {
+                std::cerr << "game runtime failed on frame " << frame << ": " << error << '\n';
+                return 1;
+            }
+        }
+        std::cout << "Native ZS runtime completed " << frames << " persistent frames; players=" << runtime.playerCount() << '\n';
+        return 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "game-selftest") {
         zumbi::NativeGameRuntime runtime;
         runtime.setInput("key.W", true);
@@ -41,6 +60,12 @@ int main(int argc, char** argv) {
         std::string error;
         if (!runtime.run("NativeEngine/scripts/player_system.zsc", error)) {
             std::cerr << "game runtime selftest failed: " << error << '\n';
+            return 1;
+        }
+        runtime.setInput("testMode", false);
+        runtime.setInput("deltaTime", 1.0 / 60.0);
+        if (!runtime.run("NativeEngine/scripts/player_system.zsc", error)) {
+            std::cerr << "persistent game tick selftest failed: " << error << '\n';
             return 1;
         }
         std::cout << "Native ZS player and UI runtime self-test OK\n";
