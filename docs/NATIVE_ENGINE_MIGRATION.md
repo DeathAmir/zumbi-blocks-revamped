@@ -46,7 +46,7 @@ The current movement API is deliberately kinematic: the host updates transforms 
 
 ## Build
 
-Windows: CMake 3.20+, Visual Studio 2022/MSVC, vcpkg packages for OpenSSL and zlib.
+Windows: CMake 3.20+, Visual Studio 2022/MSVC, precompiled OpenSSL 3.5.9 and zlib 1.3.1.1000 packages downloaded from NuGet by the Windows workflow.
 
 Linux: CMake 3.20+, a C++20 compiler, OpenSSL and zlib development packages.
 
