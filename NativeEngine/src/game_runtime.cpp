@@ -95,13 +95,23 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         if(name=="player.get") { const auto it=p.find(key); return it==p.end()?ZsValue(std::monostate{}):it->second; }
         p[key]=args[2]; return args[2];
     }
-    if((name=="input.get"||name=="input.consume")&&args.size()==1) {
+    if((name=="input.get"||name=="input.consume"||name=="input.key_down"||name=="input.key_pressed")&&args.size()==1) {
         std::string key; if(!s(0,key)) return false;
-        const auto it=input_.find(key);
+        const std::string lookup=(name=="input.key_down"||name=="input.key_pressed")?"key."+key:key;
+        const auto it=input_.find(lookup);
         if(it==input_.end()) return false;
         const ZsValue value=it->second;
-        if(name=="input.consume") it->second=false;
+        if(name=="input.consume"||name=="input.key_pressed") it->second=false;
         return value;
+    }
+    if(name=="controls.set"&&args.size()==2) {
+        std::string action,key; if(!s(0,action)||!s(1,key)||action.empty()||key.empty()) return false;
+        state_["controls."+action]=key; return true;
+    }
+    if(name=="controls.get"&&args.size()==1) {
+        std::string action; if(!s(0,action)) return std::string{};
+        const auto it=state_.find("controls."+action);
+        return it==state_.end()?ZsValue(std::string{}):it->second;
     }
     if(name=="game.active"&&args.empty()) return gameActive_;
     if(name=="time.delta"&&args.empty()) {
