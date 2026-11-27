@@ -102,10 +102,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Rebuild with pinned public key failed" }
           .\build\Release\zumbi_native.exe compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
           if ($LASTEXITCODE -ne 0) { throw "Player system compile failed" }
-          .\build\Release\zumbi_native.exe asset-pack Assets build/GamePackage
+          New-Item -ItemType Directory -Force build/PackageSource/Assets | Out-Null
+          New-Item -ItemType Directory -Force build/PackageSource/Scripts | Out-Null
+          Copy-Item -Path Assets\* -Destination build/PackageSource/Assets -Recurse -Force
+          Copy-Item NativeEngine/scripts/player_system.zsc build/PackageSource/Scripts/player_system.zsc
+          .\build\Release\zumbi_native.exe asset-pack build/PackageSource build/GamePackage
           if ($LASTEXITCODE -ne 0) { throw "Asset packing failed" }
           Copy-Item NativeEngine/scripts/player_system.zsc build/GamePackage/Game/ZBR/Scripts/player_system.zsc
           Copy-Item build/Release/zumbi_native.exe build/GamePackage/Game/Bin/zumbi_native.exe
+          Get-ChildItem "$env:VCPKG_ROOT/installed/x64-windows/bin" -Filter *.dll -ErrorAction SilentlyContinue | Copy-Item -Destination build/GamePackage/Game/Bin -Force
           .\build\Release\zumbi_native.exe asset-verify build/GamePackage
           if ($LASTEXITCODE -ne 0) { throw "Signed asset verification failed" }
           Push-Location build/GamePackage
