@@ -71,6 +71,10 @@ fn Main() {
     if (input.get("testMode")) {
         test.expect(player.get(id, "movementState") == 2, "Player sprint state did not migrate");
         test.expect(player.position(id, "z") > 0, "Player transform did not move through the runtime");
+        player_manager.add_spawn(12, 0, 8, 90);
+        test.expect(player_manager.count() == 1 && player_manager.at(0) == id, "Native player manager did not register the player");
+        test.expect(player_manager.spawn(id), "Player spawn point selection failed");
+        test.expect(player.position(id, "x") == 12 && player.position(id, "z") == 8, "Player spawn transform was not applied");
         player_hurt(id, 25, 0);
         test.expect(player.get(id, "health") == 75, "Armor-adjusted player damage mismatch");
         player_heal(id, 10, false);
@@ -91,6 +95,13 @@ fn Main() {
         ui.click("menu.0.options");
         ui_manager_tick(0.016);
         test.expect(ui.get_visible("menu.4"), "Options menu button did not open Options");
+        ui.change_value("menu.4.volume", 0.5);
+        ui.change_value("menu.4.quality", 3);
+        ui.change_value("menu.4.fullscreen", 1);
+        ui_manager_tick(0.016);
+        test.expect(options.get("volume") == 0.5, "Volume slider did not update native options");
+        test.expect(options.get("quality") == 3, "Graphics quality dropdown did not update native options");
+        test.expect(options.get("fullscreen") == 1, "Fullscreen toggle did not update native options");
         ui.click("menu.4.controls");
         ui_manager_tick(0.016);
         test.expect(ui.get_visible("menu.10"), "Controls button did not open Controls menu");
@@ -846,6 +857,14 @@ fn ui_manager_tick(dt) {
     if (input.consume("ui.clicked.menu.4.fullscreen")) { event.emit("options.fullscreen.toggle", 0, 0); }
     if (input.consume("ui.clicked.menu.4.resolution")) { event.emit("options.resolution.open", 0, 0); }
     if (input.consume("ui.clicked.menu.4.quality")) { event.emit("options.quality.open", 0, 0); }
+    if (input.consume("ui.changed.menu.4.volume")) { options.set("volume", ui.get_value("menu.4.volume")); }
+    if (input.consume("ui.changed.menu.4.resolution")) { options.set("resolution", ui.get_value("menu.4.resolution")); }
+    if (input.consume("ui.changed.menu.4.quality")) { options.set("quality", ui.get_value("menu.4.quality")); }
+    if (input.consume("ui.changed.menu.4.fullscreen")) {
+        options.set("fullscreen", ui.get_value("menu.4.fullscreen"));
+        event.emit("options.fullscreen.set", 0, ui.get_value("menu.4.fullscreen"));
+    }
+    if (input.consume("ui.changed.controls.sensitivity")) { state.set("controls.mouseSensitivity", ui.get_value("controls.sensitivity")); }
     if (input.consume("ui.clicked.menu.4.controls")) { ui_menu(10); }
     if (input.consume("ui.clicked.menu.4.save")) { event.emit("options.save", 0, 0); ui_primary_message("Options saved", 2); }
     if (input.consume("ui.clicked.menu.5.back")) { ui_menu(0); }
