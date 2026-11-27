@@ -299,12 +299,57 @@ bool AssetPackage::selfTest(std::string& error) {
         std::ofstream file(source/"empty.dat",std::ios::binary);
         if(!file) { error="Could not create empty asset fixture."; return false; }
     }
+    {
+        std::filesystem::create_directories(source/"Bin");
+        std::ofstream file(source/"Bin"/"runtime.dll",std::ios::binary);
+        const std::string payload="precompiled runtime binary fixture";
+        file.write(payload.data(),static_cast<std::streamsize>(payload.size()));
+        if(!file) { error="Could not create DLL fixture."; return false; }
+    }
     const std::string privateKey="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
     std::string publicKey;
     if(!derivePublicKey(privateKey,publicKey,error)||!pack(source,output,privateKey,error)||
        !verify(output,publicKey,error)) {
         std::filesystem::remove_all(base,ec);
         return false;
+    }
+    {
+        Bytes dllBytes;
+        if(!readFile(source/"Bin"/"runtime.dll",dllBytes)) {
+            std::filesystem::remove_all(base,ec);
+            error="Could not read DLL fixture.";
+            return false;
+        }
+        Bytes manifestBytes;
+        if(!readFile(output/"Game"/"ZBR"/"Content"/"manifest.zbm",manifestBytes)) {
+            std::filesystem::remove_all(base,ec);
+            error="Could not read asset manifest.";
+            return false;
+        }
+        const std::string manifest(manifestBytes.begin(),manifestBytes.end());
+        if(manifest.find(hashBytes(dllBytes))==std::string::npos) {
+            std::filesystem::remove_all(base,ec);
+            error="Precompiled DLL was omitted from the signed manifest.";
+            return false;
+        }
+    }
+    {
+        const auto dllMirror=output/"Game"/"Bin"/"runtime.dll";
+        std::filesystem::create_directories(dllMirror.parent_path());
+        std::filesystem::copy_file(source/"Bin"/"runtime.dll",dllMirror);
+        if(!verify(output,publicKey,error)) {
+            std::filesystem::remove_all(base,ec);
+            return false;
+        }
+        std::ofstream tampered(dllMirror,std::ios::binary|std::ios::trunc);
+        tampered<<"tampered dll";
+        tampered.close();
+        std::string dllError;
+        if(verify(output,publicKey,dllError)) {
+            std::filesystem::remove_all(base,ec);
+            error="Tampered runtime DLL was accepted.";
+            return false;
+        }
     }
     {
         const auto mirror=output/"Game"/"nested folder"/"asset.bin";
