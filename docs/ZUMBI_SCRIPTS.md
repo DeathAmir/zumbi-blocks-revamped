@@ -66,10 +66,10 @@ The standalone `run` CLI host registers `log`, `print`, `sqrt`, arrays, maps and
 - Inventory and items: `inventory.init/get/set/select/selected/primary/secondary/melee/has_gun/target_item`; `item.create/destroy/get/set`.
 - Input and controls: `input.get/set/consume/key_down/key_pressed`; `controls.get/set`.
 - Simulation: `game.active`, `time.delta`, `camera.yaw`, `physics.grounded/ceiling/gravity_y/move`.
-- UI and options: `ui.create/action/click/text/visible/enabled/alpha/value/get_text/get_visible/get_value/change_value/node_count`; `options.get/set`.
+- UI and options: `ui.create/action/click/text/visible/enabled/alpha/value/get_text/get_visible/get_value/change_value/node_count`; `options.get/set/save`.
 - Events and feedback: `event.emit`, `audio.play`, `particles.set`.
 
-Arrays and maps are reference values in the VM and can hold other ZS values. In the connected runtime, player, inventory, UI, options and script state persist across repeated VM ticks in the same runtime instance; they are not yet serialized across application restarts. The current physics calls only update kinematic transforms and accept grounded/ceiling input from a future collision adapter. The UI calls maintain a retained node tree but do not draw a native window yet.
+Arrays and maps are reference values in the VM and can hold other ZS values. In the connected runtime, player, inventory, UI, options and script state persist across repeated VM ticks in the same runtime instance. The options manager also saves and reloads volume, fullscreen, resolution, graphics quality and mouse sensitivity from `Game/Config/settings.ini`; player and inventory saves are still pending. The current physics calls only update kinematic transforms and accept grounded/ceiling input from a future collision adapter. The UI calls maintain a retained node tree but do not draw a native window yet.
 
 ## Build and execute
 
