@@ -1,6 +1,7 @@
 #include "asset_archive.hpp"
 #include "asset_package.hpp"
 #include "engine_core.hpp"
+#include "game_runtime.hpp"
 #include "zs_compiler.hpp"
 #include <iostream>
 #include <cmath>
@@ -21,6 +22,30 @@ std::string display(const zumbi::ZsValue& value) {
 }
 
 int main(int argc, char** argv) {
+    if (argc == 3 && std::string(argv[1]) == "game-run") {
+        zumbi::NativeGameRuntime runtime;
+        std::string error;
+        if (!runtime.run(argv[2], error)) {
+            std::cerr << "game runtime failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "ZS gameplay module executed in native engine runtime\n";
+        return 0;
+    }
+    if (argc == 2 && std::string(argv[1]) == "game-selftest") {
+        zumbi::NativeGameRuntime runtime;
+        runtime.setInput("MoveForward", true);
+        runtime.setInput("Sprint", true);
+        runtime.setInput("testMode", true);
+        runtime.setInput("deltaTime", 0.1);
+        std::string error;
+        if (!runtime.run("NativeEngine/tests/player_system.zsc", error)) {
+            std::cerr << "game runtime selftest failed: " << error << '\n';
+            return 1;
+        }
+        std::cout << "Native ZS player and UI runtime self-test OK\n";
+        return 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "asset-selftest") {
         std::string error;
         if (!zumbi::AssetPackage::selfTest(error)) {
