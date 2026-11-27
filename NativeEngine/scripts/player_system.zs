@@ -129,7 +129,7 @@ fn Main() {
         ui.click("menu.0.credits");
         ui_manager_tick(0.016);
         test.expect(ui.get_visible("menu.5") && ui.get_visible("title"), "Credits menu and title visibility mismatch");
-        test.expect(ui.get_text("menu.5.credits") == "\\nDesign, code and idea by Leonardo \\"Minhoca\\"\\nAll models, animations and art design by Pável \\"Springy\\"\\n\\nOriginal ZumbiBlocks by Adrian \\"adrianks47\\"\\n\\nThanks for playing!", "Credits text does not match the Unity prefab");
+        test.expect(ui.get_text("menu.5.credits") == "\nDesign, code and idea by Leonardo \"Minhoca\"\nAll models, animations and art design by Pável \"Springy\"\n\nOriginal ZumbiBlocks by Adrian \"adrianks47\"\n\nThanks for playing!", "Credits text does not match the Unity prefab");
         test.expect(ui.get_text("pause.title") == "Paused", "Pause title was not transferred");
         test.expect(ui.node_count() >= 80, "Native retained UI tree is missing Unity controls");
         ui.click("menu.5.back");
