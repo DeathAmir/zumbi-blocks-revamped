@@ -9,6 +9,7 @@
 #include <variant>
 #include <unordered_map>
 #include <cstdlib>
+#include <filesystem>
 
 std::string environmentVariable(const char* name) {
 #ifdef _MSC_VER
@@ -66,14 +67,23 @@ int main(int argc, char** argv) {
         return 0;
     }
     if (argc == 2 && std::string(argv[1]) == "game-selftest") {
+        const auto settingsPath = std::filesystem::temp_directory_path() / "zbr-native-game-selftest.ini";
+        std::error_code settingsError;
+        std::filesystem::remove(settingsPath, settingsError);
+#if defined(_MSC_VER)
+        _putenv_s("ZBR_SETTINGS_PATH", settingsPath.string().c_str());
+#else
+        setenv("ZBR_SETTINGS_PATH", settingsPath.string().c_str(), 1);
+#endif
+        std::string error;
         zumbi::NativeGameRuntime runtime;
         runtime.setInput("key.W", true);
         runtime.setInput("key.LeftShift", true);
         runtime.setInput("testMode", true);
         runtime.setInput("deltaTime", 0.1);
-        std::string error;
         if (!runtime.run("NativeEngine/scripts/player_system.zsc", error)) {
             std::cerr << "game runtime selftest failed: " << error << '\n';
+            std::filesystem::remove(settingsPath, settingsError);
             return 1;
         }
         runtime.setInput("testMode", false);
@@ -81,9 +91,18 @@ int main(int argc, char** argv) {
         runtime.setInput("deltaTime", 1.0 / 60.0);
         if (!runtime.run("NativeEngine/scripts/player_system.zsc", error)) {
             std::cerr << "persistent game tick selftest failed: " << error << '\n';
+            std::filesystem::remove(settingsPath, settingsError);
             return 1;
         }
-        std::cout << "Native ZS player and UI runtime self-test OK\n";
+        zumbi::NativeGameRuntime persisted;
+        persisted.setInput("verifyOptions", true);
+        if (!persisted.run("NativeEngine/scripts/player_system.zsc", error)) {
+            std::cerr << "options persistence selftest failed: " << error << '\n';
+            std::filesystem::remove(settingsPath, settingsError);
+            return 1;
+        }
+        std::filesystem::remove(settingsPath, settingsError);
+        std::cout << "Native ZS player, UI and persistent options self-test OK\n";
         return 0;
     }
     if (argc == 2 && std::string(argv[1]) == "asset-selftest") {
