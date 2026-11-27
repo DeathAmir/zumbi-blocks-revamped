@@ -25,20 +25,23 @@ jobs:
           $opensslHeader = Get-ChildItem build/prebuilt/openssl -Recurse -File -Filter evp.h | Where-Object { $_.FullName -match '[\\/]include[\\/]openssl[\\/]evp.h$' } | Select-Object -First 1
           $opensslLibrary = Get-ChildItem build/prebuilt/openssl -Recurse -File -Filter libcrypto.lib | Where-Object { $_.FullName -match '[\\/]lib[\\/]win-x64[\\/]native[\\/]' } | Select-Object -First 1
           $zlibHeader = Get-ChildItem build/prebuilt/zlib -Recurse -File -Filter zlib.h | Select-Object -First 1
-          $zlibLibrary = Get-ChildItem build/prebuilt/zlib -Recurse -File -Filter *.lib | Where-Object { $_.Name -match 'zlib' } | Select-Object -First 1
+          $zlibLibrary = Get-ChildItem build/prebuilt/zlib -Recurse -File -Filter *.lib | Where-Object { $_.Name -match 'zlib' -and $_.FullName -notmatch '[\\/]lib_debug[\\/]' } | Select-Object -First 1
           if (!$opensslHeader -or !$opensslLibrary -or !$zlibHeader -or !$zlibLibrary) { throw "Precompiled native headers or libraries were not found in the pinned NuGet packages" }
           $opensslDllDir = Join-Path (Get-Location).Path "build/prebuilt/openssl/runtimes/win-x64/native"
           if (!(Test-Path $opensslDllDir)) { throw "OpenSSL x64 runtime DLL directory is missing" }
+          $opensslCryptoDll = Get-ChildItem $opensslDllDir -Filter libcrypto-3-x64.dll | Select-Object -First 1
+          if (!$opensslCryptoDll) { throw "Precompiled OpenSSL crypto DLL is missing" }
           "OPENSSL_INCLUDE_DIR=$($opensslHeader.Directory.Parent.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "OPENSSL_CRYPTO_LIBRARY=$($opensslLibrary.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "OPENSSL_DLL_DIR=$opensslDllDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "OPENSSL_CRYPTO_DLL=$($opensslCryptoDll.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "ZLIB_INCLUDE_DIR=$($zlibHeader.DirectoryName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "ZLIB_LIBRARY_RELEASE=$($zlibLibrary.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "ZLIB_ROOT=$((Get-Item build/prebuilt/zlib).FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Configure
         shell: pwsh
         run: |
-          cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DOPENSSL_INCLUDE_DIR="$env:OPENSSL_INCLUDE_DIR" -DOPENSSL_CRYPTO_LIBRARY="$env:OPENSSL_CRYPTO_LIBRARY" -DZLIB_INCLUDE_DIR="$env:ZLIB_INCLUDE_DIR" -DZLIB_LIBRARY_RELEASE="$env:ZLIB_LIBRARY_RELEASE" -DZLIB_LIBRARY="$env:ZLIB_LIBRARY_RELEASE"
+          cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DOPENSSL_INCLUDE_DIR="$env:OPENSSL_INCLUDE_DIR" -DOPENSSL_CRYPTO_LIBRARY="$env:OPENSSL_CRYPTO_LIBRARY" -DOPENSSL_CRYPTO_DLL="$env:OPENSSL_CRYPTO_DLL" -DZLIB_INCLUDE_DIR="$env:ZLIB_INCLUDE_DIR" -DZLIB_LIBRARY_RELEASE="$env:ZLIB_LIBRARY_RELEASE" -DZLIB_LIBRARY="$env:ZLIB_LIBRARY_RELEASE"
           if ($LASTEXITCODE -ne 0) { throw "CMake configure failed" }
       - name: Build
         shell: pwsh
