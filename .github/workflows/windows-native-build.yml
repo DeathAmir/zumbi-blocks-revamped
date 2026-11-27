@@ -11,10 +11,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install prebuilt dependencies
+        shell: pwsh
+        run: |
+          vcpkg install openssl:x64-windows zlib:x64-windows
       - name: Configure
-        run: cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+        shell: pwsh
+        run: |
+          cmake -S NativeEngine -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=x64-windows
       - name: Build
         run: cmake --build build --config Release --parallel
+      - name: Test signed Zlib asset package
+        shell: pwsh
+        run: |
+          .\build\Release\zumbi_native.exe asset-selftest
+          if ($LASTEXITCODE -ne 0) { throw "Asset package self-test failed" }
       - name: Test native engine core
         run: |
           .\build\Release\zumbi_native.exe selftest
