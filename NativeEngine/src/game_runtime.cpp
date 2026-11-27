@@ -85,19 +85,19 @@ bool NativeGameRuntime::entity(const std::vector<ZsValue>& args,std::size_t i,En
 ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsValue>& args) {
     auto n=[&](std::size_t i,double& v){return number(args,i,v);};
     auto s=[&](std::size_t i,std::string& v){return string(args,i,v);};
-    auto array=[&](std::size_t i)->std::shared_ptr<ZsArray>{
+    auto arrayArg=[&](std::size_t i)->std::shared_ptr<ZsArray>{
         if(i>=args.size()) return {};
         if(const auto p=std::get_if<std::shared_ptr<ZsArray>>(&args[i])) return *p;
         return {};
     };
-    auto map=[&](std::size_t i)->std::shared_ptr<ZsMap>{
+    auto mapArg=[&](std::size_t i)->std::shared_ptr<ZsMap>{
         if(i>=args.size()) return {};
         if(const auto p=std::get_if<std::shared_ptr<ZsMap>>(&args[i])) return *p;
         return {};
     };
     if(name=="array.new"&&args.empty()) return std::make_shared<ZsArray>();
     if(name=="array.push"&&args.size()==2) {
-        auto target=array(0); if(!target) return false;
+        auto target=arrayArg(0); if(!target) return false;
         target->values.push_back(args[1]); return static_cast<double>(target->values.size());
     }
     if(name=="array.get"&&args.size()==2) {
@@ -119,7 +119,7 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
     }
     if(name=="map.new"&&args.empty()) return std::make_shared<ZsMap>();
     if(name=="map.set"&&args.size()==3) {
-        auto target=map(0); std::string key;
+        auto target=mapArg(0); std::string key;
         if(!target||!s(1,key)) return false;
         target->values[key]=args[2]; return args[2];
     }
