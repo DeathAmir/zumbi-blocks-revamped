@@ -154,6 +154,28 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         double a{},b{}; if(!n(0,a)||!n(1,b)) return 0.0;
         std::uniform_real_distribution<double> d(std::min(a,b),std::max(a,b)); return d(random_);
     }
+    if(name=="ui.create"&&args.size()==7) {
+        std::string id,kind,parent; double x{},y{},width{},height{};
+        if(!s(0,id)||!s(1,kind)||!s(2,parent)||!n(3,x)||!n(4,y)||!n(5,width)||!n(6,height)||id.empty()) return false;
+        auto& node=ui_[id]; node.kind=kind; node.parent=parent; node.x=x; node.y=y;
+        node.width=width; node.height=height; return true;
+    }
+    if(name=="ui.action"&&args.size()==3) {
+        std::string id,action; double argument{};
+        if(!s(0,id)||!s(1,action)||!n(2,argument)) return false;
+        ui_[id].action=action; ui_[id].actionArgument=argument; return true;
+    }
+    if(name=="ui.click"&&args.size()==1) {
+        std::string id; if(!s(0,id)) return false;
+        const auto it=ui_.find(id); if(it==ui_.end()||!it->second.enabled||!it->second.visible) return false;
+        input_["ui.clicked."+id]=true;
+        events_.publish({"ui.click",0,{it->second.actionArgument}});
+        return true;
+    }
+    if(name=="ui.get_text"&&args.size()==1) {
+        std::string id; if(!s(0,id)) return std::string{};
+        const auto it=ui_.find(id); return it==ui_.end()?ZsValue(std::string{}):ZsValue(it->second.text);
+    }
     if((name=="ui.text"||name=="ui.visible"||name=="ui.enabled"||name=="ui.alpha")&&args.size()==2) {
         std::string id; if(!s(0,id)) return false;
         auto& node=ui_[id];
