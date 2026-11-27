@@ -9,15 +9,17 @@ add_executable(zumbi_native
     src/main.cpp
     src/engine_core.cpp
     src/asset_archive.cpp
+    src/asset_package.cpp
     src/zs_compiler.cpp
 )
 target_include_directories(zumbi_native PRIVATE include)
 
+find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
+target_link_libraries(zumbi_native PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
+
 if(WIN32)
     target_link_libraries(zumbi_native PRIVATE bcrypt)
-else()
-    find_package(OpenSSL REQUIRED)
-    target_link_libraries(zumbi_native PRIVATE OpenSSL::Crypto)
 endif()
 
 if(MSVC)
