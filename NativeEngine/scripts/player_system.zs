@@ -39,6 +39,7 @@ fn Main() {
         player.set(id, "bleedingRate", 0.5);
         player.set(id, "crouchHeightPercentage", 50);
         player.set(id, "noiseReduction", 2);
+        controls_init();
         ui_manager_init();
         hud_initialize();
     }
@@ -230,15 +231,15 @@ fn player_movement_tick(id, dt) {
     }
     player.set(id, "verticalVelocity", vertical);
     if (player.get(id, "dead")) { return; }
-    let crouch = input.get("Crouch");
-    let sprint = input.get("Sprint");
-    let jump = input.consume("Jump");
+    let crouch = input.key_down(controls.get("Crouch"));
+    let sprint = input.key_down(controls.get("Sprint"));
+    let jump = input.key_pressed(controls.get("Jump"));
     let x = 0;
     let z = 0;
-    if (input.get("MoveRight")) { x = 1; }
-    if (input.get("MoveLeft")) { x = -1; }
-    if (input.get("MoveForward")) { z = 1; }
-    if (input.get("MoveBackward")) { z = -1; }
+    if (input.key_down(controls.get("MoveRight"))) { x = 1; }
+    if (input.key_down(controls.get("MoveLeft"))) { x = -1; }
+    if (input.key_down(controls.get("MoveForward"))) { z = 1; }
+    if (input.key_down(controls.get("MoveBackward"))) { z = -1; }
     let yaw = camera.yaw() * 0.0174532925199433;
     let rx = x * math.cos(yaw) + z * math.sin(yaw);
     let rz = z * math.cos(yaw) - x * math.sin(yaw);
@@ -305,6 +306,70 @@ fn player_jump(id, grounded) {
     player.set(id, "currentNoise", max_number(player.get(id, "jumpingNoise"), player.get(id, "currentNoise")));
     player.set(id, "stamina", player.get(id, "stamina") - player.get(id, "jumpingStaminaCost"));
     player.set(id, "movementState", 5);
+}
+
+fn controls_init() {
+    let names = array.new();
+    let keys = array.new();
+    array.push(names, "MoveForward"); array.push(keys, "W");
+    array.push(names, "MoveLeft"); array.push(keys, "A");
+    array.push(names, "MoveBackward"); array.push(keys, "S");
+    array.push(names, "MoveRight"); array.push(keys, "D");
+    array.push(names, "Jump"); array.push(keys, "Space");
+    array.push(names, "Crouch"); array.push(keys, "LeftControl");
+    array.push(names, "Sprint"); array.push(keys, "LeftShift");
+    array.push(names, "BasicFire"); array.push(keys, "Mouse0");
+    array.push(names, "Aim"); array.push(keys, "Mouse1");
+    array.push(names, "Reload"); array.push(keys, "R");
+    array.push(names, "Inspect"); array.push(keys, "F");
+    array.push(names, "AltFire"); array.push(keys, "Mouse1");
+    array.push(names, "ItemInteract"); array.push(keys, "E");
+    array.push(names, "ItemDrop"); array.push(keys, "G");
+    array.push(names, "ItemSlot1"); array.push(keys, "Alpha1");
+    array.push(names, "ItemSlot2"); array.push(keys, "Alpha2");
+    array.push(names, "ItemSlot3"); array.push(keys, "Alpha3");
+    array.push(names, "ItemSlot4"); array.push(keys, "Alpha4");
+    array.push(names, "ItemSlot5"); array.push(keys, "Alpha5");
+    array.push(names, "ItemSlot6"); array.push(keys, "Alpha6");
+    array.push(names, "ItemSlot7"); array.push(keys, "Alpha7");
+    array.push(names, "ItemSlot8"); array.push(keys, "Alpha8");
+    array.push(names, "ItemSlot9"); array.push(keys, "Alpha9");
+    array.push(names, "BasicAttack"); array.push(keys, "Mouse0");
+    array.push(names, "AltAttack"); array.push(keys, "Mouse1");
+    array.push(names, "BasicThrow"); array.push(keys, "Mouse0");
+    array.push(names, "AltThrow"); array.push(keys, "Mouse1");
+    array.push(names, "BasicPlace"); array.push(keys, "Mouse0");
+    array.push(names, "AltPlace"); array.push(keys, "Mouse1");
+    array.push(names, "BasicUse"); array.push(keys, "Mouse0");
+    array.push(names, "AltUse"); array.push(keys, "Mouse1");
+    array.push(names, "SpectatorForward"); array.push(keys, "W");
+    array.push(names, "SpectatorLeft"); array.push(keys, "A");
+    array.push(names, "SpectatorBackward"); array.push(keys, "S");
+    array.push(names, "SpectatorRight"); array.push(keys, "D");
+    array.push(names, "SpectatorUp"); array.push(keys, "Space");
+    array.push(names, "SpectatorDown"); array.push(keys, "V");
+    array.push(names, "SpectatorFast"); array.push(keys, "LeftShift");
+    array.push(names, "SpectatorSlow"); array.push(keys, "LeftControl");
+    state.set("controls.names", names);
+    state.set("controls.mouseSensitivity", 6);
+    let i = 0;
+    while (i < array.size(names)) {
+        let name = array.get(names, i);
+        let key = array.get(keys, i);
+        controls.set(name, key);
+        ui.create("controls.bind." + name, "button", "menu.10", 373, -60 - i * 42, 360, 38);
+        ui.text("controls.bind." + name, name + " : " + key);
+        ui.action("controls.bind." + name, "Controls.Rebind", 0);
+        i = i + 1;
+    }
+    ui.create("controls.back", "button", "menu.10", 373, -1740, 360, 44);
+    ui.text("controls.back", "Back");
+    ui.action("controls.back", "Menu", 4);
+    ui.create("controls.reset", "button", "menu.10", 373, -1790, 360, 44);
+    ui.text("controls.reset", "Reset controls");
+    ui.action("controls.reset", "ResetAllControls", 0);
+    ui.create("controls.sensitivity", "slider", "menu.10", 373, -1840, 360, 36);
+    ui.value("controls.sensitivity", 6, 20);
 }
 
 fn ui_manager_init() {
@@ -448,6 +513,28 @@ fn ui_secondary_message(message, duration) {
 
 fn ui_manager_tick(dt) {
     if (input.consume("ui.clicked.menu.0.play")) { ui_menu(1); }
+    if (input.consume("ui.clicked.menu.0.quit")) { event.emit("game.quit", 0, 0); }
+    if (input.consume("ui.clicked.controls.back")) { ui_menu(4); }
+    if (input.consume("ui.clicked.controls.reset")) { controls_init(); ui_primary_message("Controls reset", 2); }
+    let binding = state.get("controls.binding");
+    if (binding != null) {
+        let newKey = input.get("lastKey");
+        if (newKey != false && newKey != "") {
+            controls.set(binding, newKey);
+            ui.text("controls.bind." + binding, binding + " : " + newKey);
+            state.erase("controls.binding");
+        }
+    }
+    let controlNames = state.get("controls.names");
+    let controlIndex = 0;
+    while (controlIndex < array.size(controlNames)) {
+        let controlName = array.get(controlNames, controlIndex);
+        if (input.consume("ui.clicked.controls.bind." + controlName)) {
+            state.set("controls.binding", controlName);
+            ui_primary_message("Press a key for " + controlName, 0);
+        }
+        controlIndex = controlIndex + 1;
+    }
     if (input.consume("ui.clicked.menu.0.character")) { ui_menu(3); }
     if (input.consume("ui.clicked.menu.0.options")) { ui_menu(4); }
     if (input.consume("ui.clicked.menu.0.credits")) { ui_menu(5); }
