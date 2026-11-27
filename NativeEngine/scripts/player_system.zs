@@ -299,6 +299,84 @@ fn player_jump(id, grounded) {
 }
 
 fn ui_manager_init() {
+    ui.create("canvas", "canvas", "", 0, 0, 800, 600);
+    ui.create("menu.0", "panel", "canvas", 0, -70, 400, 200);
+    ui.create("menu.0.play", "button", "menu.0", 0, 0, 360, 40);
+    ui.text("menu.0.play", "Play");
+    ui.action("menu.0.play", "Menu", 1);
+    ui.create("menu.0.character", "button", "menu.0", 0, -40, 360, 40);
+    ui.text("menu.0.character", "Character");
+    ui.action("menu.0.character", "Menu", 3);
+    ui.create("menu.0.options", "button", "menu.0", 0, -80, 360, 40);
+    ui.text("menu.0.options", "Options");
+    ui.action("menu.0.options", "Menu", 4);
+    ui.create("menu.0.quit", "button", "menu.0", 0, -120, 360, 40);
+    ui.text("menu.0.quit", "Quit");
+    ui.action("menu.0.quit", "Quit", 1);
+    ui.create("menu.0.credits", "button", "menu.0", 0, -160, 360, 40);
+    ui.text("menu.0.credits", "Credits");
+    ui.action("menu.0.credits", "Menu", 5);
+
+    ui.create("menu.1", "panel", "canvas", 0, -49.934, 700, 300);
+    ui.create("menu.1.singleplayer", "button", "menu.1", 350, -50.666664, 696, 97.33333);
+    ui.text("menu.1.singleplayer", "Singleplayer");
+    ui.action("menu.1.singleplayer", "SceneChanger", 1);
+    ui.create("menu.1.multiplayer", "button", "menu.1", 350, -150, 696, 97.33333);
+    ui.text("menu.1.multiplayer", "Multiplayer (coming soon)");
+    ui.action("menu.1.multiplayer", "SceneChanger", 1);
+    ui.create("menu.1.back", "button", "menu.1", 350, -249.33331, 696, 97.33333);
+    ui.text("menu.1.back", "Back");
+    ui.action("menu.1.back", "Menu", 0);
+
+    ui.create("menu.2", "panel", "canvas", 0, -50, 700, 300);
+    ui.create("menu.2.map1", "button", "menu.2", 0, -120.25, 696, 57.5);
+    ui.text("menu.2.map1", "zb_070_remastered");
+    ui.action("menu.2.map1", "SceneChanger", 1);
+    ui.create("menu.2.map2", "button", "menu.2", 0, -179.75, 696, 57.5);
+    ui.text("menu.2.map2", "zb_alphatests");
+    ui.action("menu.2.map2", "SceneChanger", 2);
+    ui.create("menu.2.back", "button", "menu.2", 0, -254.25, 696, 87.5);
+    ui.text("menu.2.back", "Back");
+    ui.action("menu.2.back", "Menu", 1);
+
+    ui.create("menu.3", "panel", "canvas", 0, -49.934, 400, 200);
+    ui.create("menu.3.appearance", "button", "menu.3", 350, -50.666668, 696, 97.33333);
+    ui.text("menu.3.appearance", "Appearance (coming soon)");
+    ui.action("menu.3.appearance", "Menu", 0);
+    ui.create("menu.3.shop", "button", "menu.3", 350, -150, 696, 97.33333);
+    ui.text("menu.3.shop", "Shop (coming soon)");
+    ui.action("menu.3.shop", "Menu", 0);
+    ui.create("menu.3.back", "button", "menu.3", 350, -250, 696, 97.33333);
+    ui.text("menu.3.back", "Back");
+    ui.action("menu.3.back", "Menu", 0);
+
+    ui.create("menu.4", "panel", "canvas", 0, 0, 750, 430);
+    ui.create("menu.4.volume", "slider", "menu.4", 375, -32, 746, 60);
+    ui.create("menu.4.resolution", "dropdown", "menu.4", 375, -94, 746, 60);
+    ui.create("menu.4.quality", "dropdown", "menu.4", 375, -156, 746, 60);
+    ui.create("menu.4.controls", "button", "menu.4", 375, -333.5, 746, 55);
+    ui.text("menu.4.controls", "Controls");
+    ui.action("menu.4.controls", "Menu", 9);
+    ui.create("menu.4.save", "button", "menu.4", 375, -276.5, 746, 55);
+    ui.text("menu.4.save", "Save options");
+    ui.action("menu.4.save", "SaveOptions", 0);
+    ui.create("menu.4.back", "button", "menu.4", 375, -390.5, 746, 55);
+    ui.text("menu.4.back", "Back");
+    ui.action("menu.4.back", "Menu", 0);
+
+    ui.create("menu.5", "panel", "canvas", 0, 0, 400, 200);
+    ui.create("menu.5.back", "button", "menu.5", 200, -177, 396, 40);
+    ui.text("menu.5.back", "Back");
+    ui.action("menu.5.back", "Menu", 0);
+
+    ui.create("menu.10", "scroll_panel", "canvas", 0, 0, 750, 550);
+    ui.create("pause.menu", "panel", "canvas", 0, 0, 500, 300);
+    ui.create("pause.resume", "button", "pause.menu", 250, -171.96066, 495.99994, 89.39928);
+    ui.text("pause.resume", "Resume");
+    ui.action("pause.resume", "UnPause", 0);
+    ui.create("pause.main_menu", "button", "pause.menu", 250, -263.35992, 495.99994, 89.39928);
+    ui.text("pause.main_menu", "Menu");
+    ui.action("pause.main_menu", "SceneChanger", 0);
     ui.visible("menu.0", true);
     ui.visible("pause.menu", false);
     ui.visible("title", true);
@@ -367,6 +445,22 @@ fn ui_manager_tick(dt) {
 }
 
 fn hud_initialize() {
+    ui.create("hud.stats_panel", "panel", "canvas", 150, 50, 300, 100);
+    ui.create("hud.health", "slider", "hud.stats_panel", 150, -18.666666, 292, 29.333332);
+    ui.create("hud.stamina", "slider", "hud.stats_panel", 150, -50, 292, 29.333332);
+    ui.create("hud.noise", "slider", "hud.stats_panel", 150, -81.33333, 292, 29.333332);
+    ui.create("hud.gun_panel", "panel", "canvas", -120, 50, 240, 100);
+    ui.create("hud.weapon_name", "text", "hud.gun_panel", 120, -26.5, 232, 45);
+    ui.create("hud.ammo", "text", "hud.gun_panel", 120, -73.5, 232, 45);
+    ui.create("hud.death_screen", "image", "canvas", 0, 0, 800, 600);
+    ui.create("hud.hurt", "image", "canvas", 0, 0, 800, 600);
+    ui.create("hud.center_crosshair", "image", "canvas", 0, 0, 32, 32);
+    ui.create("hud.dynamic_crosshair", "image", "canvas", 0, 0, 32, 32);
+    ui.create("hud.hitmarker", "image", "canvas", 0, 0, 32, 32);
+    ui.create("hud.interaction_crosshair", "image", "canvas", 0, 0, 32, 32);
+    ui.create("center.primary", "text", "canvas", 0, -138, 600, 48);
+    ui.create("center.secondary", "text", "canvas", 0, -190, 600, 40);
+    ui.create("stopwatch", "text", "canvas", 0, -19, 200, 30);
     ui.visible("hud.death_screen", false);
     ui.visible("hud.hurt", true);
     ui.alpha("hud.hurt", 0);
