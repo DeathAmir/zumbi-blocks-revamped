@@ -18,6 +18,10 @@ jobs:
         run: cmake --build build --parallel
       - name: Test signed Zlib asset package
         run: ./build/zumbi_native asset-selftest
+      - name: Compile and test connected player and UI runtime
+        run: |
+          ./build/zumbi_native compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
+          ./build/zumbi_native game-selftest
       - name: Test native engine core
         run: ./build/zumbi_native selftest
       - name: Test encrypted archive
