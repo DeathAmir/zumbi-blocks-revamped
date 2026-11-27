@@ -7,6 +7,33 @@
 #include <unordered_map>
 
 namespace zumbi {
+struct ItemRuntimeState {
+    std::uint32_t id{};
+    int type{};
+    int definitionId{};
+    int amount{1};
+    bool handgun{};
+    double ammoBoxCapacity{};
+    double ammo{};
+    double totalAmmo{};
+    std::string name;
+    std::string pickupSound;
+    bool alive{true};
+    bool active{true};
+    bool uiActive{true};
+    bool colliderEnabled{true};
+    bool physicsEnabled{true};
+    bool equipped{};
+};
+
+struct InventoryRuntimeState {
+    std::vector<std::uint32_t> slots = std::vector<std::uint32_t>(9, 0);
+    int selectedSlot{1};
+    int primarySlot{1};
+    int secondarySlot{2};
+    int meleeSlot{3};
+};
+
 struct UiNodeState {
     std::string kind;
     std::string parent;
@@ -46,6 +73,9 @@ private:
     World world_;
     EventBus events_;
     std::unordered_map<Entity, std::unordered_map<std::string, ZsValue>> players_;
+    std::unordered_map<Entity, InventoryRuntimeState> inventories_;
+    std::unordered_map<std::uint32_t, ItemRuntimeState> items_;
+    std::uint32_t nextItemId_{1};
     std::unordered_map<std::string, ZsValue> input_;
     std::unordered_map<std::string, ZsValue> state_;
     std::unordered_map<std::string, UiNodeState> ui_;
