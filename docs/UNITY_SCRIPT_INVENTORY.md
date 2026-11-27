@@ -35,16 +35,16 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 | Options.cs | Options data | Pending |
 | OptionsManager.cs | Settings persistence and application | Pending |
 | PhysicMaterialCollection.cs | Physics material lookup | Pending |
-| PlayerHUD.cs | Player HUD and feedback | Pending |
+| PlayerHUD.cs | Player HUD and feedback | ZS retained-UI logic port |
 | PlayerInventory.cs | Inventory slots, pickup, drop, equipment | Pending |
 | PlayerManager.cs | Player lifecycle and player list | Pending |
-| PlayerMovement.cs | Movement, sprint, crouch, jump and falling | Logic prototype |
+| PlayerMovement.cs | Movement, sprint, crouch, jump and falling | ZS runtime port (kinematic host bridge) |
 | PlayerSpawn.cs | Player spawn configuration | Pending |
-| PlayerStats.cs | Health, armor, stamina, noise, bleeding and death | Logic prototype |
+| PlayerStats.cs | Health, armor, stamina, noise, bleeding and death | ZS runtime port (Player0 defaults) |
 | ScriptableObjectManager.cs | Shared data registry | Pending |
 | Sound.cs | Sound data | Pending |
 | TestMusicPlayer.cs | Test music playback | Pending |
-| UIManager.cs | Menus, panels, messages and scene UI | Pending |
+| UIManager.cs | Menus, panels, messages and scene UI | ZS retained-UI logic port |
 | UsableItem.cs | Healing, consumables and usable equipment | Pending |
 | WaveSpawner.cs | Wave timing, selection and spawn orchestration | Logic prototype |
 | ZombieTextureCollection.cs | Zombie texture lookup | Pending |
@@ -60,7 +60,7 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 - `NativeEngine/tests/player_movement.zs`: sprint/crouch speed selection and jump velocity.
 - `NativeEngine/tests/wave_director.zs`: kill threshold, wave completion, wave numbering and countdown.
 
-These are deterministic ZS logic ports for the portions represented by the tests. They are not yet wired to a live scene, ECS, physics engine, input device, animation, UI, audio, save system, or network session. The source C# components remain in the repository as the behavioral reference until each replacement is integrated and parity-tested.
+The PlayerStats, PlayerMovement, PlayerHUD and UIManager logic now runs through the connected NativeGameRuntime host API. The Player0 prefab defaults are copied into the ZS player initialization. The runtime exposes entity state, transform movement, input state, game delta, retained UI nodes, audio/particle events and player-death events. The current physics bridge is kinematic and has no collision solver, renderer, animation backend, or real OS input adapter yet; the UI tree is retained data, not a drawn window. The source C# components remain as behavioral references until full scene and interaction parity is verified.
 
 ## Required next integrations
 
