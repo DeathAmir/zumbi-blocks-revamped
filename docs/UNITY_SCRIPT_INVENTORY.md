@@ -9,12 +9,12 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 | AmbientEntity.cs | Ambient entity lifecycle | Pending |
 | AmbientEntityLight.cs | Ambient lighting behavior | Pending |
 | AudioManager.cs | Audio routing and playback | Pending |
-| Control.cs | Input control data | Pending |
+| Control.cs | Input control data | ZS binding data (runtime model) |
 | Controllers/EnemyMovement.cs | Zombie steering, target selection, navigation | Pending |
 | Controllers/MouseController.cs | Mouse look and weapon aim | Pending |
 | Controllers/SpectatorMovement.cs | Spectator camera movement | Pending |
-| ControlsCollection.cs | Control presets | Pending |
-| ControlsManager.cs | Bindings and input configuration | Pending |
+| ControlsCollection.cs | Control presets | ZS defaults and 39-entry control map |
+| ControlsManager.cs | Bindings and input configuration | ZS rebinding UI and native input adapter |
 | Destructible.cs | Damageable world objects | Pending |
 | EnemyInventory.cs | Zombie equipment and item use | Pending |
 | EnemySpawn.cs | Spawn point behavior | Pending |
@@ -36,7 +36,7 @@ Source baseline: Unity 2020.1.14f1, 46 C# scripts under Assets/Scripts and 2 scr
 | OptionsManager.cs | Settings persistence and application | Pending |
 | PhysicMaterialCollection.cs | Physics material lookup | Pending |
 | PlayerHUD.cs | Player HUD and feedback | ZS retained-UI logic port |
-| PlayerInventory.cs | Inventory slots, pickup, drop, equipment | Pending |
+| PlayerInventory.cs | Inventory slots, pickup, drop, equipment | ZS runtime port (9 slots, stacking, ammo and drop) |
 | PlayerManager.cs | Player lifecycle and player list | Pending |
 | PlayerMovement.cs | Movement, sprint, crouch, jump and falling | ZS runtime port (kinematic host bridge) |
 | PlayerSpawn.cs | Player spawn configuration | Pending |
@@ -64,8 +64,8 @@ The PlayerStats, PlayerMovement, PlayerHUD and UIManager logic now runs through 
 
 ## Required next integrations
 
-1. Add persistent entity/component state and arrays/maps to the ZS runtime.
-2. Register typed, versioned native APIs for entities, transforms, input, physics, navigation, audio, animation, UI, inventory, items and spawning.
-3. Port the remaining gameplay methods, preserving serialized defaults and prefab references.
-4. Import and validate scene/prefab/asset references; do not discard Unity GUIDs before the replacement asset database is complete.
+1. Expand the current run-scoped state and array/map support into persistent, serializable entity/component storage.
+2. Replace the current string-dispatched host calls with typed, versioned native API registration for entities, transforms, input, physics, navigation, audio, animation, UI, inventory, items and spawning.
+3. Port the remaining gameplay methods, preserving serialized defaults and prefab references; the firearm/melee/usable item and player manager paths are still pending.
+4. Implement the retained UI renderer and desktop input backend, then import and validate scene/prefab/asset references; do not discard Unity GUIDs before the replacement asset database is complete.
 5. Add integration tests that compare the original C# behavior with the native runtime on the same fixtures.
