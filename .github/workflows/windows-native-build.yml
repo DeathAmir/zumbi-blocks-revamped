@@ -125,16 +125,20 @@ jobs:
           .\build\Release\zumbi_native.exe compile NativeEngine/scripts/player_system.zs NativeEngine/scripts/player_system.zsc
           if ($LASTEXITCODE -ne 0) { throw "Player system compile failed" }
           New-Item -ItemType Directory -Force build/PackageSource/Assets | Out-Null
-          New-Item -ItemType Directory -Force build/PackageSource/Scripts | Out-Null
+          New-Item -ItemType Directory -Force build/PackageSource/Bin | Out-Null
+          New-Item -ItemType Directory -Force build/PackageSource/ZBR/Scripts | Out-Null
+          New-Item -ItemType Directory -Force build/PackageSource/Legal | Out-Null
           Copy-Item -Path Assets\* -Destination build/PackageSource/Assets -Recurse -Force
-          Copy-Item NativeEngine/scripts/player_system.zsc build/PackageSource/Scripts/player_system.zsc
+          Copy-Item NativeEngine/scripts/player_system.zsc build/PackageSource/ZBR/Scripts/player_system.zsc
+          Copy-Item build/Release/zumbi_native.exe build/PackageSource/Bin/zumbi_native.exe
+          Get-ChildItem build/Release -Filter *.dll | Copy-Item -Destination build/PackageSource/Bin -Force
+          Copy-Item NativeEngine/THIRD_PARTY_NOTICES.md build/PackageSource/Legal/THIRD_PARTY_NOTICES.md
           .\build\Release\zumbi_native.exe asset-pack build/PackageSource build/GamePackage
           if ($LASTEXITCODE -ne 0) { throw "Asset packing failed" }
-          Copy-Item NativeEngine/scripts/player_system.zsc build/GamePackage/Game/ZBR/Scripts/player_system.zsc
-          Copy-Item build/Release/zumbi_native.exe build/GamePackage/Game/Bin/zumbi_native.exe
-          Get-ChildItem build/Release -Filter *.dll | Copy-Item -Destination build/GamePackage/Game/Bin -Force
+          Copy-Item -Path build/PackageSource/Bin\* -Destination build/GamePackage/Game/Bin -Force
+          Copy-Item -Path build/PackageSource/ZBR/Scripts\* -Destination build/GamePackage/Game/ZBR/Scripts -Force
           New-Item -ItemType Directory -Force build/GamePackage/Game/Legal | Out-Null
-          Copy-Item NativeEngine/THIRD_PARTY_NOTICES.md build/GamePackage/Game/Legal/THIRD_PARTY_NOTICES.md
+          Copy-Item build/PackageSource/Legal/THIRD_PARTY_NOTICES.md build/GamePackage/Game/Legal/THIRD_PARTY_NOTICES.md
           .\build\Release\zumbi_native.exe asset-verify build/GamePackage
           if ($LASTEXITCODE -ne 0) { throw "Signed asset verification failed" }
           Push-Location build/GamePackage
