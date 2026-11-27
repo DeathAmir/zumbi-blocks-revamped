@@ -95,6 +95,127 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         if(name=="player.get") { const auto it=p.find(key); return it==p.end()?ZsValue(std::monostate{}):it->second; }
         p[key]=args[2]; return args[2];
     }
+    if(name=="inventory.init"&&args.size()==4) {
+        Entity id{}; double primary{},secondary{},melee{};
+        if(!entity(args,0,id)||!n(1,primary)||!n(2,secondary)||!n(3,melee)) return false;
+        if(primary<1||primary>9||secondary<1||secondary>9||melee<1||melee>9) return false;
+        InventoryRuntimeState inv;
+        inv.primarySlot=static_cast<int>(primary);
+        inv.secondarySlot=static_cast<int>(secondary);
+        inv.meleeSlot=static_cast<int>(melee);
+        inventories_[id]=std::move(inv);
+        return true;
+    }
+    if(name=="item.create"&&args.size()==9) {
+        double type{},definitionId{},amount{},capacity{},ammo{},totalAmmo{};
+        std::string itemName,pickupSound;
+        if(!n(0,type)||!n(1,definitionId)||!n(2,amount)||!n(4,capacity)||!n(5,ammo)||!n(6,totalAmmo)||
+           !s(7,itemName)||!s(8,pickupSound)||type<0||type>5||std::floor(type)!=type||
+           definitionId<0||amount<1||std::floor(amount)!=amount||nextItemId_==0) return 0.0;
+        ItemRuntimeState item;
+        item.id=nextItemId_++;
+        item.type=static_cast<int>(type);
+        item.definitionId=static_cast<int>(definitionId);
+        item.amount=static_cast<int>(amount);
+        item.handgun=truthy(args[3]);
+        item.ammoBoxCapacity=capacity;
+        item.ammo=ammo;
+        item.totalAmmo=totalAmmo;
+        item.name=itemName;
+        item.pickupSound=pickupSound;
+        items_[item.id]=item;
+        return static_cast<double>(item.id);
+    }
+    if(name=="item.destroy"&&args.size()==1) {
+        double raw{}; if(!n(0,raw)||raw<1||raw>4294967295.0) return false;
+        const auto it=items_.find(static_cast<std::uint32_t>(raw));
+        if(it==items_.end()) return false;
+        it->second.alive=false; it->second.active=false; it->second.equipped=false;
+        return true;
+    }
+    if((name=="item.get"&&args.size()==2)||(name=="item.set"&&args.size()==3)) {
+        double raw{}; std::string field;
+        if(!n(0,raw)||raw<1||raw>4294967295.0||!s(1,field)) return std::monostate{};
+        const auto it=items_.find(static_cast<std::uint32_t>(raw));
+        if(it==items_.end()) return std::monostate{};
+        auto& item=it->second;
+        if(name=="item.get") {
+            if(field=="type") return static_cast<double>(item.type);
+            if(field=="definitionId") return static_cast<double>(item.definitionId);
+            if(field=="amount") return static_cast<double>(item.amount);
+            if(field=="handgun") return item.handgun;
+            if(field=="ammoBoxCapacity") return item.ammoBoxCapacity;
+            if(field=="ammo") return item.ammo;
+            if(field=="totalAmmo") return item.totalAmmo;
+            if(field=="name") return item.name;
+            if(field=="pickupSound") return item.pickupSound;
+            if(field=="alive") return item.alive;
+            if(field=="active") return item.active;
+            if(field=="uiActive") return item.uiActive;
+            if(field=="colliderEnabled") return item.colliderEnabled;
+            if(field=="physicsEnabled") return item.physicsEnabled;
+            if(field=="equipped") return item.equipped;
+            return std::monostate{};
+        }
+        const auto& value=args[2];
+        if(field=="type") { if(const auto v=std::get_if<double>(&value)) item.type=static_cast<int>(*v); else return false; }
+        else if(field=="definitionId") { if(const auto v=std::get_if<double>(&value)) item.definitionId=static_cast<int>(*v); else return false; }
+        else if(field=="amount") { if(const auto v=std::get_if<double>(&value)) item.amount=static_cast<int>(*v); else return false; }
+        else if(field=="handgun") item.handgun=truthy(value);
+        else if(field=="ammoBoxCapacity") { if(const auto v=std::get_if<double>(&value)) item.ammoBoxCapacity=*v; else return false; }
+        else if(field=="ammo") { if(const auto v=std::get_if<double>(&value)) item.ammo=*v; else return false; }
+        else if(field=="totalAmmo") { if(const auto v=std::get_if<double>(&value)) item.totalAmmo=*v; else return false; }
+        else if(field=="name") { if(const auto v=std::get_if<std::string>(&value)) item.name=*v; else return false; }
+        else if(field=="pickupSound") { if(const auto v=std::get_if<std::string>(&value)) item.pickupSound=*v; else return false; }
+        else if(field=="alive") item.alive=truthy(value);
+        else if(field=="active") item.active=truthy(value);
+        else if(field=="uiActive") item.uiActive=truthy(value);
+        else if(field=="colliderEnabled") item.colliderEnabled=truthy(value);
+        else if(field=="physicsEnabled") item.physicsEnabled=truthy(value);
+        else if(field=="equipped") item.equipped=truthy(value);
+        else return false;
+        return value;
+    }
+    if((name=="inventory.get"&&args.size()==2)||(name=="inventory.set"&&args.size()==3)) {
+        Entity id{}; double slot{};
+        if(!entity(args,0,id)||!n(1,slot)||slot<1||slot>9||std::floor(slot)!=slot||!inventories_.contains(id)) return 0.0;
+        auto& inv=inventories_[id];
+        const auto index=static_cast<std::size_t>(slot-1);
+        if(name=="inventory.get") return static_cast<double>(inv.slots[index]);
+        double raw{}; if(!n(2,raw)||raw<0||raw>4294967295.0||std::floor(raw)!=raw) return false;
+        const auto itemId=static_cast<std::uint32_t>(raw);
+        if(itemId&&(!items_.contains(itemId)||!items_[itemId].alive)) return false;
+        inv.slots[index]=itemId;
+        return true;
+    }
+    if(name=="inventory.selected"&&args.size()==1) {
+        Entity id{}; if(!entity(args,0,id)||!inventories_.contains(id)) return 0.0;
+        return static_cast<double>(inventories_[id].selectedSlot);
+    }
+    if(name=="inventory.select"&&args.size()==2) {
+        Entity id{}; double slot{};
+        if(!entity(args,0,id)||!n(1,slot)||slot<1||slot>9||std::floor(slot)!=slot||!inventories_.contains(id)) return false;
+        inventories_[id].selectedSlot=static_cast<int>(slot); return true;
+    }
+    if((name=="inventory.primary"||name=="inventory.secondary"||name=="inventory.melee")&&args.size()==1) {
+        Entity id{}; if(!entity(args,0,id)||!inventories_.contains(id)) return 0.0;
+        const auto& inv=inventories_[id];
+        if(name=="inventory.primary") return static_cast<double>(inv.primarySlot);
+        if(name=="inventory.secondary") return static_cast<double>(inv.secondarySlot);
+        return static_cast<double>(inv.meleeSlot);
+    }
+    if(name=="inventory.has_gun"&&args.size()==1) {
+        Entity id{}; if(!entity(args,0,id)||!inventories_.contains(id)) return false;
+        for(const auto itemId:inventories_[id].slots) {
+            const auto it=items_.find(itemId);
+            if(itemId&&it!=items_.end()&&it->second.alive&&it->second.type==0) return true;
+        }
+        return false;
+    }
+    if(name=="inventory.target_item"&&args.empty()) {
+        const auto it=input_.find("targetItem");
+        return it==input_.end()?ZsValue(0.0):it->second;
+    }
     if((name=="input.get"||name=="input.consume"||name=="input.key_down"||name=="input.key_pressed")&&args.size()==1) {
         std::string key; if(!s(0,key)) return false;
         const std::string lookup=(name=="input.key_down"||name=="input.key_pressed")?"key."+key:key;
