@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <fstream>
 #include <iomanip>
+#include <limits>
+#include <unordered_map>
 #include <sstream>
 #include <vector>
 
@@ -132,9 +134,13 @@ bool compressAsset(const Bytes& input,Bytes& output) {
 bool decompressAsset(const Bytes& input,std::uint64_t expected,Bytes& output) {
     if(expected>512ull*1024*1024||expected>std::numeric_limits<uLongf>::max()) return false;
     output.resize(static_cast<std::size_t>(expected));
+    if(expected==0) {
+        Bytes empty;
+        Bytes check;
+        return compressAsset(empty,check) && check==input;
+    }
     uLongf actual=static_cast<uLongf>(expected);
-    static unsigned char empty=0;
-    const int result=uncompress(output.data(),&actual,input.empty()?&empty:input.data(),static_cast<uLong>(input.size()));
+    const int result=uncompress(output.data(),&actual,input.data(),static_cast<uLong>(input.size()));
     return result==Z_OK&&actual==expected;
 }
 bool writeObject(const std::filesystem::path& path,const Bytes& original) {
