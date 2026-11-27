@@ -53,6 +53,7 @@ fn Main() {
         player_stats_tick(id, time.delta());
         player_hud_tick(id, time.delta());
         ui_manager_tick(time.delta());
+        ui_show_time(state.get("ui.stopwatch"));
     }
     if (input.get("testMode")) {
         test.expect(player.get(id, "movementState") == 2, "Player sprint state did not migrate");
@@ -682,6 +683,8 @@ fn ui_manager_init() {
     state.set("ui.primary_timer", 0);
     state.set("ui.secondary_timer", 0);
     state.set("ui.stopwatch", 0);
+    state.set("ui.stopwatch_minutes", 0);
+    state.set("ui.stopwatch_hours", 0);
 }
 
 fn ui_menu(index) {
@@ -724,6 +727,23 @@ fn ui_secondary_message(message, duration) {
     state.set("ui.secondary_timer", duration);
 }
 
+fn ui_show_time(amount) {
+    let minutes = state.get("ui.stopwatch_minutes");
+    let hours = state.get("ui.stopwatch_hours");
+    let seconds = amount - minutes * 60;
+    if (seconds >= 60) {
+        minutes = minutes + 1;
+        seconds = seconds - 60;
+    }
+    if (minutes == 60) {
+        hours = hours + 1;
+        minutes = minutes - 60;
+    }
+    state.set("ui.stopwatch_minutes", minutes);
+    state.set("ui.stopwatch_hours", hours);
+    ui.text("stopwatch", format.integer(hours) + ":" + format.integer(minutes) + ":" + format.fixed(seconds, 2));
+}
+
 fn ui_manager_tick(dt) {
     if (input.consume("ui.clicked.menu.0.play")) { ui_menu(1); }
     if (input.consume("ui.clicked.menu.0.quit")) { event.emit("game.quit", 0, 0); }
@@ -761,6 +781,9 @@ fn ui_manager_tick(dt) {
     if (input.consume("ui.clicked.menu.3.appearance")) { ui_primary_message("Appearance is coming soon", 3); }
     if (input.consume("ui.clicked.menu.3.shop")) { ui_primary_message("Shop is coming soon", 3); }
     if (input.consume("ui.clicked.menu.4.back")) { ui_menu(0); }
+    if (input.consume("ui.clicked.menu.4.fullscreen")) { event.emit("options.fullscreen.toggle", 0, 0); }
+    if (input.consume("ui.clicked.menu.4.resolution")) { event.emit("options.resolution.open", 0, 0); }
+    if (input.consume("ui.clicked.menu.4.quality")) { event.emit("options.quality.open", 0, 0); }
     if (input.consume("ui.clicked.menu.4.controls")) { ui_menu(10); }
     if (input.consume("ui.clicked.menu.4.save")) { event.emit("options.save", 0, 0); ui_primary_message("Options saved", 2); }
     if (input.consume("ui.clicked.menu.5.back")) { ui_menu(0); }
@@ -799,6 +822,7 @@ fn hud_initialize() {
     ui.create("center.primary", "text", "canvas", 0, -138, 600, 48);
     ui.create("center.secondary", "text", "canvas", 0, -190, 600, 40);
     ui.create("stopwatch", "text", "canvas", 0, -19, 200, 30);
+    ui.visible("stopwatch", false);
     ui.visible("hud.death_screen", false);
     ui.visible("hud.hurt", true);
     ui.alpha("hud.hurt", 0);
