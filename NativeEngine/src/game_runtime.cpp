@@ -101,20 +101,20 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         target->values.push_back(args[1]); return static_cast<double>(target->values.size());
     }
     if(name=="array.get"&&args.size()==2) {
-        auto target=array(0); double index{};
+        auto target=arrayArg(0); double index{};
         if(!target||!n(1,index)||index<0||std::floor(index)!=index||index>=static_cast<double>(target->values.size())) return std::monostate{};
         return target->values[static_cast<std::size_t>(index)];
     }
     if(name=="array.set"&&args.size()==3) {
-        auto target=array(0); double index{};
+        auto target=arrayArg(0); double index{};
         if(!target||!n(1,index)||index<0||std::floor(index)!=index||index>=static_cast<double>(target->values.size())) return false;
         target->values[static_cast<std::size_t>(index)]=args[2]; return true;
     }
     if(name=="array.size"&&args.size()==1) {
-        auto target=array(0); return target?ZsValue(static_cast<double>(target->values.size())):ZsValue(0.0);
+        auto target=arrayArg(0); return target?ZsValue(static_cast<double>(target->values.size())):ZsValue(0.0);
     }
     if(name=="array.pop"&&args.size()==1) {
-        auto target=array(0); if(!target||target->values.empty()) return std::monostate{};
+        auto target=arrayArg(0); if(!target||target->values.empty()) return std::monostate{};
         auto value=target->values.back(); target->values.pop_back(); return value;
     }
     if(name=="map.new"&&args.empty()) return std::make_shared<ZsMap>();
@@ -124,7 +124,7 @@ ZsValue NativeGameRuntime::invoke(const std::string& name,const std::vector<ZsVa
         target->values[key]=args[2]; return args[2];
     }
     if((name=="map.get"||name=="map.has"||name=="map.erase")&&args.size()==2) {
-        auto target=map(0); std::string key;
+        auto target=mapArg(0); std::string key;
         if(!target||!s(1,key)) return std::monostate{};
         auto found=target->values.find(key);
         if(name=="map.has") return found!=target->values.end();
