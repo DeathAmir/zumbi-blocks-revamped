@@ -873,7 +873,7 @@ fn ui_manager_tick(dt) {
     if (input.consume("ui.clicked.menu.0.credits")) { ui_menu(5); }
     if (input.consume("ui.clicked.menu.1.back")) { ui_menu(0); }
     if (input.consume("ui.clicked.menu.1.singleplayer")) { event.emit("scene.change", 0, 1); }
-    if (input.consume("ui.clicked.menu.1.multiplayer")) { ui_primary_message("Multiplayer is coming soon", 3); }
+    if (input.consume("ui.clicked.menu.1.multiplayer")) { event.emit("scene.change", 0, 1); }
     if (input.consume("ui.clicked.menu.2.back")) { ui_menu(1); }
     if (input.consume("ui.clicked.menu.2.map1")) { event.emit("scene.change", 0, 1); }
     if (input.consume("ui.clicked.menu.2.map2")) { event.emit("scene.change", 0, 2); }
